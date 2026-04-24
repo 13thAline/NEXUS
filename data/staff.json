@@ -1,0 +1,68 @@
+[
+  {
+    "id": "staff_001",
+    "name": "Ravi Sharma",
+    "role": "SECURITY",
+    "subRole": "Security Officer",
+    "floor": 1,
+    "zone": "Main Lobby",
+    "contact": "+91-98765-00001",
+    "certifications": ["CPR", "FIRE_WARDEN"],
+    "available": true
+  },
+  {
+    "id": "staff_002",
+    "name": "Priya Nair",
+    "role": "HOUSEKEEPING",
+    "subRole": "Floor Supervisor",
+    "floor": 3,
+    "zone": "Floor 3 Corridor",
+    "contact": "+91-98765-00002",
+    "certifications": ["FIRE_WARDEN"],
+    "available": true
+  },
+  {
+    "id": "staff_003",
+    "name": "Arjun Mehta",
+    "role": "ENGINEERING",
+    "subRole": "Duty Engineer",
+    "floor": 0,
+    "zone": "Engineering Room",
+    "contact": "+91-98765-00003",
+    "certifications": ["ELECTRICAL", "HVAC"],
+    "available": true
+  },
+  {
+    "id": "staff_004",
+    "name": "Sunita Rao",
+    "role": "FRONT_DESK",
+    "subRole": "Duty Manager",
+    "floor": 1,
+    "zone": "Reception",
+    "contact": "+91-98765-00004",
+    "certifications": ["FIRST_AID"],
+    "available": true
+  },
+  {
+    "id": "staff_005",
+    "name": "Deepak Verma",
+    "role": "SECURITY",
+    "subRole": "Senior Security",
+    "floor": 2,
+    "zone": "Floor 2 Patrol",
+    "contact": "+91-98765-00005",
+    "certifications": ["CPR", "FIRE_WARDEN", "CROWD_CONTROL"],
+    "available": true
+  },
+  {
+    "id": "staff_006",
+    "name": "Kavitha Iyer",
+    "role": "HOUSEKEEPING",
+    "subRole": "Floor Staff",
+    "floor": 4,
+    "zone": "Floor 4 Rooms",
+    "contact": "+91-98765-00006",
+    "certifications": [],
+    "available": true
+  }
+]

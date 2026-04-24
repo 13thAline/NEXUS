@@ -1,13 +1,50 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
+}
+
+model Incident {
+  id          String        @id @default(cuid())
+  type        String        // FIRE | ACTIVE_SHOOTER | MEDICAL | GAS_LEAK | STRUCTURAL | EVACUATION
+  severity    String        // LOW | MEDIUM | HIGH | CRITICAL
+  zone        String        // e.g. "Floor 3 - Room 304 corridor"
+  floor       Int
+  status      String        @default("ACTIVE")  // ACTIVE | CONTAINED | RESOLVED
+  triggeredAt DateTime      @default(now())
+  resolvedAt  DateTime?
+  rawPayload  String        // Original JSON from sensor/source system
+  tasks       Task[]
+  events      IncidentLog[]
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  incidentId     String
+  incident       Incident  @relation(fields: [incidentId], references: [id])
+  staffId        String
+  staffName      String
+  staffRole      String
+  description    String    // Plain English: what this person needs to do
+  priority       Int       // 1 = highest priority
+  floor          Int       // Where this task takes place
+  zone           String
+  status         String    @default("PENDING")  // PENDING | ACKNOWLEDGED | IN_PROGRESS | DONE
+  assignedAt     DateTime  @default(now())
+  acknowledgedAt DateTime?
+  completedAt    DateTime?
+  llmReasoning   String?   // Why the LLM assigned this task to this person
+}
+
+model IncidentLog {
+  id         String   @id @default(cuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  message    String
+  source     String   // SYSTEM | STAFF | LLM | SENSOR
+  createdAt  DateTime @default(now())
 }
