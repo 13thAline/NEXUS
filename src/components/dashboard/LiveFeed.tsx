@@ -1,20 +1,20 @@
-// src/components/dashboard/LiveFeed.tsx — Live event stream
+// src/components/dashboard/LiveFeed.tsx — Tactical event stream
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { IncidentLog } from '@/types'
-
-const SOURCE_STYLES: Record<string, { icon: string; color: string }> = {
-  SENSOR: { icon: '🚨', color: 'text-red-400' },
-  LLM: { icon: '🧠', color: 'text-purple-400' },
-  STAFF: { icon: '👤', color: 'text-blue-400' },
-  SYSTEM: { icon: '⚙️', color: 'text-muted-foreground' },
-}
+import { Badge } from '@/components/ui/badge'
 
 interface LiveFeedProps {
   logs: IncidentLog[]
   generating: boolean
+}
+
+const SOURCE_COLORS: Record<string, string> = {
+  SENSOR: 'bg-red-500/20 text-red-400 border-red-500/30',
+  LLM: 'bg-orange-500/20 text-orange-400 border-orange-500/30 shadow-[0_0_10px_rgba(249,115,22,0.1)]',
+  STAFF: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  SYSTEM: 'bg-white/10 text-white/40 border-white/20',
 }
 
 export function LiveFeed({ logs, generating }: LiveFeedProps) {
@@ -25,36 +25,52 @@ export function LiveFeed({ logs, generating }: LiveFeedProps) {
   }, [logs.length])
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live Feed</h2>
-        <div className="flex items-center gap-1.5">
-          <div className={`w-1.5 h-1.5 rounded-full ${generating ? 'bg-yellow-400 animate-nexus-pulse' : 'bg-green-500'}`} />
-          <span className="text-[10px] text-muted-foreground">{generating ? 'Processing' : 'Live'}</span>
+    <div className="flex flex-col h-full bg-black/40 rounded-xl overflow-hidden border border-white/5 shadow-inner">
+      <div className="p-3 border-b border-white/5 bg-white/5 flex items-center justify-between">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Tactical Event Stream</h2>
+        <div className="flex gap-1.5 items-center">
+           {generating && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />}
+           <div className="w-1.5 h-1.5 rounded-full bg-green-500/20" />
+           <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
         </div>
       </div>
-      <ScrollArea className="flex-1 pr-2">
-        <div className="space-y-1">
-          {logs.length === 0 ? (
-            <p className="text-xs text-muted-foreground/40 text-center py-8">Waiting for events...</p>
-          ) : (
-            logs.map((log, i) => {
-              const style = SOURCE_STYLES[log.source] || SOURCE_STYLES.SYSTEM
-              const time = new Date(log.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-              return (
-                <div key={log.id || i} className="flex gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.02] animate-nexus-slide-in">
-                  <span className="text-sm shrink-0">{style.icon}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs leading-relaxed break-words">{log.message}</p>
-                    <span className="text-[10px] text-muted-foreground/40 font-mono">{time}</span>
-                  </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 nexus-scrollbar nexus-terminal">
+        {logs.map((log, i) => (
+          <div key={log.id || i} className="animate-nexus-slide-in group border-l border-white/5 pl-4 ml-1 hover:border-white/20 transition-colors">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Badge variant="outline" className={`text-[8px] font-black px-1.5 py-0 h-4 tracking-tighter uppercase ${SOURCE_COLORS[log.source] || SOURCE_COLORS.SYSTEM}`}>
+                {log.source}
+              </Badge>
+              <span className="text-[9px] text-white/20 font-mono tracking-tighter">
+                {new Date(log.createdAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
+            <p className={`
+              text-[11px] leading-relaxed tracking-tight
+              ${log.source === 'LLM' ? 'text-orange-200/90 font-medium italic' : 'text-white/70'}
+              group-hover:text-white transition-colors
+            `}>
+              <span className="opacity-20 mr-2 font-mono">{'>'}</span>
+              {log.message}
+            </p>
+          </div>
+        ))}
+        {logs.length === 0 && (
+          <div className="h-full flex items-center justify-center">
+             <div className="text-center group">
+                <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center mx-auto mb-3 group-hover:border-white/20 transition-colors">
+                   <div className="w-1.5 h-1.5 rounded-full bg-white/10 animate-ping" />
                 </div>
-              )
-            })
-          )}
-          <div ref={bottomRef} />
-        </div>
-      </ScrollArea>
+                <p className="text-white/10 italic text-[10px] tracking-[0.3em] uppercase">No Signals Detected</p>
+             </div>
+          </div>
+        )}
+        <div ref={bottomRef} className="h-4" />
+      </div>
+      
+      {/* Footer decorator */}
+      <div className="h-1 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
     </div>
   )
 }

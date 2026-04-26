@@ -22,10 +22,16 @@ export function AckButton({ taskId, currentStatus, onStatusChange }: AckButtonPr
         body: JSON.stringify({ action }),
       })
       if (res.ok) {
+        console.log(`[Staff] Task ${action} successful for ID: ${taskId}`)
         onStatusChange(action === 'ACKNOWLEDGE' ? 'ACKNOWLEDGED' : 'DONE')
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Server error' }))
+        console.error(`[Staff] Task ${action} failed:`, errData.error)
+        alert(`Action Failed: ${errData.error || 'Unknown error'}`)
       }
     } catch (err) {
       console.error('Failed to update task:', err)
+      alert('Network error: Could not reach the NEXUS server.')
     } finally {
       setLoading(false)
     }

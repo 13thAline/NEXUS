@@ -11,14 +11,15 @@
 
 /* ─── NEXUS Crisis UI Tokens ─────────────────────────────── */
 :root {
-  --nexus-critical: #ef4444;
-  --nexus-high: #f97316;
-  --nexus-medium: #eab308;
+  --nexus-critical: #ff2e2e;
+  --nexus-high: #ff7b00;
+  --nexus-medium: #fbbf24;
   --nexus-low: #22c55e;
   --nexus-info: #3b82f6;
-  --nexus-accent: #8b5cf6;
-  --nexus-surface: rgba(255, 255, 255, 0.03);
-  --nexus-border: rgba(255, 255, 255, 0.08);
+  --nexus-accent: #a855f7;
+  --nexus-surface: rgba(255, 255, 255, 0.02);
+  --nexus-border: rgba(255, 255, 255, 0.1);
+  --nexus-card-bg: rgba(0, 0, 0, 0.4);
 }
 
 /* ─── Crisis Animations ──────────────────────────────────── */
@@ -47,6 +48,27 @@
   to { opacity: 1; }
 }
 
+@keyframes nexus-radar {
+  0% { transform: rotate(0deg); opacity: 1; }
+  100% { transform: rotate(360deg); opacity: 0.2; }
+}
+
+@keyframes nexus-pulse-dot {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 15px currentColor; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+@keyframes nexus-scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes nexus-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 .animate-nexus-pulse { animation: nexus-pulse 2s ease-in-out infinite; }
 .animate-nexus-slide-in { animation: nexus-slide-in 0.3s ease-out; }
 .animate-nexus-glow { animation: nexus-glow 2s ease-in-out infinite; }
@@ -55,6 +77,26 @@
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
   background-size: 200% 100%;
   animation: nexus-shimmer 2s infinite;
+}
+
+.animate-nexus-radar {
+  animation: nexus-radar 4s linear infinite;
+}
+
+.animate-nexus-pulse-dot {
+  animation: nexus-pulse-dot 1.5s ease-in-out infinite;
+}
+
+.animate-nexus-float {
+  animation: nexus-float 3s ease-in-out infinite;
+}
+
+.nexus-scanline {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 100%;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.03), transparent);
+  pointer-events: none;
+  animation: nexus-scanline 8s linear infinite;
 }
 
 /* ─── Severity badge colors ──────────────────────────────── */
@@ -76,9 +118,26 @@
 
 /* ─── Glass morphism card ────────────────────────────────── */
 .nexus-glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--nexus-card-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--nexus-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.nexus-glass-hover {
+  @apply transition-all duration-300;
+}
+
+.nexus-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+}
+
+.nexus-terminal {
+  font-family: var(--font-mono);
+  @apply text-[11px] leading-tight;
 }
 
 @layer base {

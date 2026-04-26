@@ -44,6 +44,8 @@ export async function POST(
       data: updateData,
     })
 
+    console.log(`[API] Task ${taskId} updated to ${task.status}`)
+
     // Log the update
     const actionText = action === 'ACKNOWLEDGE' ? 'acknowledged' : 'completed'
     await prisma.incidentLog.create({
@@ -55,14 +57,18 @@ export async function POST(
     })
 
     // Broadcast to command dashboard
-    emitToAll('task:updated', {
-      taskId: task.id,
-      incidentId: task.incidentId,
-      status: task.status,
-      staffId: task.staffId,
-      staffName: task.staffName,
-      action,
-    })
+    try {
+      emitToAll('task:updated', {
+        taskId: task.id,
+        incidentId: task.incidentId,
+        status: task.status,
+        staffId: task.staffId,
+        staffName: task.staffName,
+        action,
+      })
+    } catch (e) {
+      console.warn('[API] Socket broadcast failed, but DB was updated')
+    }
 
     // Check if all tasks are done and auto-contain the incident
     if (action === 'COMPLETE') {

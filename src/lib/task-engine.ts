@@ -50,26 +50,40 @@ export async function generateTaskPlan(incident: IncidentInput): Promise<TaskPla
   // 5. Stream response from Ollama
   const raw = await ollama.chat(prompt)
 
-  // 6. Parse and validate LLM output (JSON only)
+  // 6. Debug: Log the raw output for visibility
+  console.log('--- RAW AI RESPONSE ---')
+  console.log(raw)
+  console.log('-----------------------')
+
+  // 7. Parse and validate LLM output (JSON only)
   const jsonStr = extractJSON(raw)
-  let parsed: unknown
+  let parsed: any
 
   try {
     parsed = JSON.parse(jsonStr)
   } catch (parseError) {
-    console.error('[TaskEngine] Failed to parse LLM JSON output:', jsonStr.substring(0, 200))
-    throw new Error(`LLM returned invalid JSON: ${(parseError as Error).message}`)
+    console.error('[TaskEngine] Failed to parse LLM JSON output:', jsonStr)
+    throw new Error(`AI returned invalid JSON formatting. Check terminal for raw block.`)
   }
 
-  // 7. Validate with Zod schema
+  // 8. Pre-validation cleanup: ensure tasks is an array even if single object returned
+  if (parsed && !Array.isArray(parsed.tasks) && typeof parsed.tasks === 'object') {
+    parsed.tasks = [parsed.tasks]
+  }
+
+  // 9. Validate with Zod schema
   const result = taskPlanSchema.safeParse(parsed)
 
   if (!result.success) {
-    console.error('[TaskEngine] LLM output failed Zod validation:', result.error.flatten())
-    throw new Error(`LLM output validation failed: ${JSON.stringify(result.error.flatten().fieldErrors)}`)
+    const errorDetails = result.error.flatten().fieldErrors
+    console.error('[TaskEngine] AI Output Schema Mismatch:', errorDetails)
+    
+    // Provide a more descriptive error back to the UI
+    const firstError = Object.entries(errorDetails)[0]
+    throw new Error(`AI generated an invalid plan: ${firstError ? `${firstError[0]} ${firstError[1]}` : 'Schema mismatch'}`)
   }
 
-  console.log(`[TaskEngine] Task plan generated: ${result.data.tasks.length} tasks`)
+  console.log(`[TaskEngine] Tactical plan verified: ${result.data.tasks.length} tasks assigned.`)
   return result.data
 }
 

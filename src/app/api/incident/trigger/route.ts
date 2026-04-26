@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { incidentTriggerSchema } from '@/lib/validators'
 import { generateTaskPlan } from '@/lib/task-engine'
 import { prisma } from '@/lib/prisma'
-import { emitToAll } from '@/lib/socket'
+import { emitToAll, emitToStaff } from '@/lib/socket'
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,78 +46,36 @@ export async function POST(req: NextRequest) {
     // 4. Broadcast to dashboard immediately (shows "Generating tasks...")
     emitToAll('incident:created', { incident })
 
-    // 5. Generate task plan via local LLM (async — don't block the response)
-    generateTaskPlan({
-      type: input.type,
-      severity: input.severity,
-      floor: input.floor,
-      zone: input.zone,
-      rawPayload: input.rawPayload || '',
+    // 5. Trigger AI Task Generation with Fallback
+    const generateTasks = async () => {
+      try {
+        // AI Path with 15s timeout
+        const plan = await Promise.race([
+          generateTaskPlan(incident),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), 15000))
+        ]) as any
+
+        await processTaskPlan(incident, plan)
+      } catch (error: any) {
+        if (error.message === 'AI_TIMEOUT') {
+          console.warn('[Trigger] AI timed out. Deploying Heuristic Fallback.')
+          const fallbackPlan = generateHeuristicPlan(incident)
+          await processTaskPlan(incident, fallbackPlan)
+        } else {
+          console.error('[Trigger Task Gen] AI Error:', error)
+          const fallbackPlan = generateHeuristicPlan(incident)
+          await processTaskPlan(incident, fallbackPlan)
+        }
+      }
+    }
+
+    // Start generation in background
+    generateTasks().catch(err => {
+      console.error('[Trigger] All generation paths failed:', err)
+      emitToAll('tasks:error', { incidentId: incident.id, error: 'Tactical engine failure.' })
     })
-      .then(async (plan) => {
-        // 6. Persist all tasks to DB
-        const tasks = await prisma.$transaction(
-          plan.tasks.map((task) =>
-            prisma.task.create({
-              data: {
-                incidentId: incident.id,
-                staffId: task.staffId,
-                staffName: task.staffName,
-                staffRole: task.staffRole,
-                description: task.description,
-                priority: task.priority,
-                floor: task.floor,
-                zone: task.zone,
-                llmReasoning: task.reasoning ?? null,
-              },
-            })
-          )
-        )
 
-        // 7. Log task plan generation
-        await prisma.incidentLog.create({
-          data: {
-            incidentId: incident.id,
-            message: `🧠 Task plan generated: ${tasks.length} tasks assigned. Est. clear time: ${plan.estimatedClearTime}. ${plan.escalationRecommended ? '⚠️ Escalation recommended.' : ''}`,
-            source: 'LLM',
-          },
-        })
-
-        // 8. Broadcast tasks to dashboard + all staff devices
-        emitToAll('tasks:assigned', {
-          incidentId: incident.id,
-          tasks,
-          summary: plan.incidentSummary,
-          estimatedClearTime: plan.estimatedClearTime,
-          escalationRecommended: plan.escalationRecommended,
-        })
-
-        // Also notify each staff member individually
-        plan.tasks.forEach((task) => {
-          emitToAll(`staff:${task.staffId}:task`, {
-            incidentId: incident.id,
-            task,
-          })
-        })
-      })
-      .catch(async (err) => {
-        console.error('[Trigger] Task generation failed:', err)
-
-        await prisma.incidentLog.create({
-          data: {
-            incidentId: incident.id,
-            message: `❌ Task generation failed: ${err.message}. Manual assignment required.`,
-            source: 'SYSTEM',
-          },
-        })
-
-        emitToAll('tasks:error', {
-          incidentId: incident.id,
-          error: err.message,
-        })
-      })
-
-    // Return immediately with 202 — task generation happens in background
+    // Return immediately with 202
     return NextResponse.json(
       {
         incidentId: incident.id,
@@ -128,9 +86,79 @@ export async function POST(req: NextRequest) {
     )
   } catch (error) {
     console.error('[Trigger] Unexpected error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// ─── Resilience Utilities ──────────────────────────────────────────
+
+async function processTaskPlan(incident: any, plan: any) {
+  // Check if tasks already exist for this incident (to prevent double-assignment if AI finishes after fallback)
+  const existingCount = await prisma.task.count({ where: { incidentId: incident.id } })
+  if (existingCount > 0) return
+
+  const tasks = await prisma.$transaction(
+    plan.tasks.map((task: any) =>
+      prisma.task.create({
+        data: {
+          incidentId: incident.id,
+          staffId: task.staffId,
+          staffName: task.staffName,
+          staffRole: task.staffRole || 'STAFF',
+          description: task.description,
+          priority: task.priority || 5,
+          floor: task.floor ?? incident.floor,
+          zone: task.zone ?? incident.zone,
+          llmReasoning: task.reasoning || 'Heuristic safety protocol.',
+        },
+      })
     )
+  )
+
+  // Log task plan generation
+  await prisma.incidentLog.create({
+    data: {
+      incidentId: incident.id,
+      message: `🧠 Task plan deployed: ${tasks.length} tasks assigned. ${plan.escalationRecommended ? '⚠️ Escalation recommended.' : ''}`,
+      source: 'LLM',
+    },
+  })
+
+  // Broadcast tasks to dashboard + all staff devices
+  emitToAll('tasks:assigned', {
+    incidentId: incident.id,
+    tasks,
+    summary: plan.incidentSummary,
+    estimatedClearTime: plan.estimatedClearTime,
+    escalationRecommended: plan.escalationRecommended,
+  })
+
+  // Notify each staff member individually
+  tasks.forEach((task) => {
+    emitToStaff(task.staffId, 'task:new', { task })
+  })
+}
+
+function generateHeuristicPlan(incident: any) {
+  return {
+    incidentSummary: "AUTOMATED PROTOCOL: AI engine latency detected. Deploying standard emergency response.",
+    escalationRecommended: incident.severity === 'CRITICAL' || incident.severity === 'HIGH',
+    estimatedClearTime: "30-45 minutes (Pending AI review)",
+    tasks: [
+      {
+        staffId: "staff_001",
+        staffName: "Marcus Thorne",
+        staffRole: "SECURITY",
+        description: `Secure perimeter of Zone ${incident.zone} on Floor ${incident.floor}. Prevent unauthorized entry.`,
+        priority: 1
+      },
+      {
+        staffId: "staff_005",
+        staffName: "Sarah Chen",
+        staffRole: "MANAGEMENT",
+        description: `Initialize guest accountability for Floor ${incident.floor}. Prepare for potential evacuation.`,
+        priority: 2
+      }
+    ]
   }
 }

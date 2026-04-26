@@ -3,6 +3,7 @@
 
 import { prisma } from './prisma'
 import type { IncidentStatus } from '@/types'
+import { generateAAR } from './report-engine'
 
 // Valid state transitions
 const VALID_TRANSITIONS: Record<IncidentStatus, IncidentStatus[]> = {
@@ -97,5 +98,8 @@ export async function checkAutoContain(incidentId: string) {
         source: 'SYSTEM',
       },
     })
+
+    // Trigger AI After-Action Report generation
+    generateAAR(incidentId)
   }
 }

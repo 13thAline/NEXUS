@@ -41,6 +41,8 @@ export interface Incident {
   rawPayload: string
   tasks?: Task[]
   events?: IncidentLog[]
+  analysisReport?: string | null
+  metrics?: string | null
 }
 
 export interface Task {
@@ -104,11 +106,11 @@ export interface OccupancyData {
 export interface TaskPlanTask {
   staffId: string
   staffName: string
-  staffRole: string
+  staffRole?: string
   description: string
   priority: number
-  floor: number
-  zone: string
+  floor?: number
+  zone?: string
   reasoning?: string
 }
 

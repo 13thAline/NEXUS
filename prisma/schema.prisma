@@ -20,6 +20,8 @@ model Incident {
   rawPayload  String        // Original JSON from sensor/source system
   tasks       Task[]
   events      IncidentLog[]
+  analysisReport String?
+  metrics        String?
 }
 
 model Task {
