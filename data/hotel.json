@@ -1,0 +1,75 @@
+{
+  "name": "The Grand Nexus Hotel",
+  "totalFloors": 5,
+  "totalRooms": 120,
+  "floors": [
+    {
+      "floor": 0,
+      "name": "Basement (B1)",
+      "zones": [
+        { "id": "B1-ENG", "name": "Engineering Room", "floor": 0, "type": "SERVICE" },
+        { "id": "B1-UTIL", "name": "Utility Area", "floor": 0, "type": "SERVICE" },
+        { "id": "B1-STAIR-A", "name": "Stairwell A - Basement", "floor": 0, "type": "STAIRWELL" },
+        { "id": "B1-STAIR-B", "name": "Stairwell B - Basement", "floor": 0, "type": "STAIRWELL" }
+      ]
+    },
+    {
+      "floor": 1,
+      "name": "Ground Floor",
+      "zones": [
+        { "id": "F1-LOBBY", "name": "Main Lobby", "floor": 1, "type": "LOBBY" },
+        { "id": "F1-RECEPTION", "name": "Reception", "floor": 1, "type": "LOBBY" },
+        { "id": "F1-ROOMS", "name": "Rooms 101–110", "floor": 1, "type": "ROOM_BLOCK" },
+        { "id": "F1-CORR-E", "name": "Floor 1 East Corridor", "floor": 1, "type": "CORRIDOR" },
+        { "id": "F1-CORR-W", "name": "Floor 1 West Corridor", "floor": 1, "type": "CORRIDOR" },
+        { "id": "F1-STAIR-A", "name": "Stairwell A - Floor 1", "floor": 1, "type": "STAIRWELL" },
+        { "id": "F1-STAIR-B", "name": "Stairwell B - Floor 1", "floor": 1, "type": "STAIRWELL" },
+        { "id": "F1-ELEV", "name": "Elevator Bank - Floor 1", "floor": 1, "type": "ELEVATOR" }
+      ]
+    },
+    {
+      "floor": 2,
+      "name": "Floor 2",
+      "zones": [
+        { "id": "F2-ROOMS-E", "name": "Rooms 201–210", "floor": 2, "type": "ROOM_BLOCK" },
+        { "id": "F2-ROOMS-W", "name": "Rooms 211–220", "floor": 2, "type": "ROOM_BLOCK" },
+        { "id": "F2-CORR-E", "name": "Floor 2 East Corridor", "floor": 2, "type": "CORRIDOR" },
+        { "id": "F2-CORR-W", "name": "Floor 2 West Corridor", "floor": 2, "type": "CORRIDOR" },
+        { "id": "F2-STAIR-A", "name": "Stairwell A - Floor 2", "floor": 2, "type": "STAIRWELL" },
+        { "id": "F2-STAIR-B", "name": "Stairwell B - Floor 2", "floor": 2, "type": "STAIRWELL" },
+        { "id": "F2-ELEV", "name": "Elevator Bank - Floor 2", "floor": 2, "type": "ELEVATOR" }
+      ]
+    },
+    {
+      "floor": 3,
+      "name": "Floor 3",
+      "zones": [
+        { "id": "F3-ROOMS-E", "name": "Rooms 301–310", "floor": 3, "type": "ROOM_BLOCK" },
+        { "id": "F3-ROOMS-W", "name": "Rooms 311–320", "floor": 3, "type": "ROOM_BLOCK" },
+        { "id": "F3-CORR-E", "name": "Floor 3 East Corridor", "floor": 3, "type": "CORRIDOR" },
+        { "id": "F3-CORR-W", "name": "Floor 3 West Corridor", "floor": 3, "type": "CORRIDOR" },
+        { "id": "F3-STAIR-A", "name": "Stairwell A - Floor 3", "floor": 3, "type": "STAIRWELL" },
+        { "id": "F3-STAIR-B", "name": "Stairwell B - Floor 3", "floor": 3, "type": "STAIRWELL" },
+        { "id": "F3-ELEV", "name": "Elevator Bank - Floor 3", "floor": 3, "type": "ELEVATOR" }
+      ]
+    },
+    {
+      "floor": 4,
+      "name": "Floor 4",
+      "zones": [
+        { "id": "F4-ROOMS-E", "name": "Rooms 401–410", "floor": 4, "type": "ROOM_BLOCK" },
+        { "id": "F4-ROOMS-W", "name": "Rooms 411–420", "floor": 4, "type": "ROOM_BLOCK" },
+        { "id": "F4-CORR-E", "name": "Floor 4 East Corridor", "floor": 4, "type": "CORRIDOR" },
+        { "id": "F4-CORR-W", "name": "Floor 4 West Corridor", "floor": 4, "type": "CORRIDOR" },
+        { "id": "F4-STAIR-A", "name": "Stairwell A - Floor 4", "floor": 4, "type": "STAIRWELL" },
+        { "id": "F4-STAIR-B", "name": "Stairwell B - Floor 4", "floor": 4, "type": "STAIRWELL" },
+        { "id": "F4-ELEV", "name": "Elevator Bank - Floor 4", "floor": 4, "type": "ELEVATOR" }
+      ]
+    }
+  ],
+  "assemblyPoints": [
+    "Main Entrance - Front Parking Lot",
+    "Side Exit B - Garden Area",
+    "Rear Exit - Service Road"
+  ]
+}
