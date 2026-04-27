@@ -9,15 +9,11 @@ import { LiveFeed } from '@/components/dashboard/LiveFeed'
 import { AnalysisReport } from '@/components/dashboard/AnalysisReport'
 import { FloorMap } from '@/components/dashboard/FloorMap'
 import { GuestRoll } from '@/components/dashboard/GuestRoll'
-<<<<<<< HEAD
 import { CCTVFeed } from '@/components/dashboard/CCTVFeed'
 import { TacticalModal } from '@/components/dashboard/TacticalModal'
 import { useTacticalAudio } from '@/hooks/useTacticalAudio'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Incident, Task, IncidentLog, LogSource, GuestRoom } from '@/types'
-=======
-import type { Incident, Task, IncidentLog, LogSource } from '@/types'
->>>>>>> origin/feature/ollama-fix
 
 export default function DashboardPage() {
   const [incident, setIncident] = useState<Incident | null>(null)
@@ -32,11 +28,7 @@ export default function DashboardPage() {
   const [search, setSearch] = useState('')
   const { playAlert, playChirp, playPing } = useTacticalAudio()
 
-<<<<<<< HEAD
   const addLog = useCallback((message: string, source: LogSource, id?: string, createdAt?: string) => {
-=======
-  const addLog = useCallback((message: string, source: LogSource) => {
->>>>>>> origin/feature/ollama-fix
     setLogs(prev => [...prev, {
       id: id || `log-${Date.now()}-${Math.random()}`,
       incidentId: '',

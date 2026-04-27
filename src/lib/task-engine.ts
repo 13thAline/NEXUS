@@ -19,13 +19,6 @@ export interface IncidentInput {
 /**
  * Generate a task plan for a given incident using the local LLM.
  * This is the most critical function in the entire system.
- *
- * Flow:
- * 1. Filter available staff from the roster
- * 2. Identify mobility-impaired guests on affected floors
- * 3. Build a detailed system prompt with all context
- * 4. Send to Ollama (local LLM) for structured JSON output
- * 5. Parse and validate the response with Zod
  */
 export async function generateTaskPlan(incident: IncidentInput): Promise<TaskPlan> {
   // 1. Get current staff snapshot — only available staff
@@ -75,19 +68,10 @@ export async function generateTaskPlan(incident: IncidentInput): Promise<TaskPla
   const result = taskPlanSchema.safeParse(parsed)
 
   if (!result.success) {
-<<<<<<< HEAD
-    const errorDetails = result.error.flatten().fieldErrors
-    console.error('[TaskEngine] AI Output Schema Mismatch:', errorDetails)
-    
-    // Provide a more descriptive error back to the UI
-    const firstError = Object.entries(errorDetails)[0]
-    throw new Error(`AI generated an invalid plan: ${firstError ? `${firstError[0]} ${firstError[1]}` : 'Schema mismatch'}`)
-=======
     console.error('[TaskEngine] LLM output failed Zod validation!')
     console.error('[TaskEngine] Validation errors:', JSON.stringify(result.error.flatten().fieldErrors, null, 2))
     console.error('[TaskEngine] Raw parsed object:', JSON.stringify(parsed, null, 2))
     throw new Error(`LLM output validation failed: ${JSON.stringify(result.error.flatten().fieldErrors)}`)
->>>>>>> origin/feature/ollama-fix
   }
 
   console.log(`[TaskEngine] Tactical plan verified: ${result.data.tasks.length} tasks assigned.`)
@@ -153,7 +137,6 @@ CRITICAL: Return ONLY the raw JSON object. No \`\`\`json blocks, no markdown, no
 
 /**
  * Extract a JSON object from a potentially messy LLM response.
- * LLMs sometimes wrap JSON in markdown code blocks or add explanation text.
  */
 function extractJSON(raw: string): string {
   // First, try to find JSON between code block markers
