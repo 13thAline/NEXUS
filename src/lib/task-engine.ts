@@ -4,7 +4,7 @@
 
 import { ollama } from './ollama'
 import { taskPlanSchema } from './validators'
-import type { TaskPlan, IncidentTriggerInput, StaffMember, GuestRoom } from '@/types'
+import type { TaskPlan, StaffMember, GuestRoom } from '@/types'
 import staffData from '../../data/staff.json'
 import occupancyData from '../../data/occupancy.json'
 
@@ -19,13 +19,6 @@ export interface IncidentInput {
 /**
  * Generate a task plan for a given incident using the local LLM.
  * This is the most critical function in the entire system.
- *
- * Flow:
- * 1. Filter available staff from the roster
- * 2. Identify mobility-impaired guests on affected floors
- * 3. Build a detailed system prompt with all context
- * 4. Send to Ollama (local LLM) for structured JSON output
- * 5. Parse and validate the response with Zod
  */
 export async function generateTaskPlan(incident: IncidentInput): Promise<TaskPlan> {
   // 1. Get current staff snapshot — only available staff
@@ -75,12 +68,10 @@ export async function generateTaskPlan(incident: IncidentInput): Promise<TaskPla
   const result = taskPlanSchema.safeParse(parsed)
 
   if (!result.success) {
-    const errorDetails = result.error.flatten().fieldErrors
-    console.error('[TaskEngine] AI Output Schema Mismatch:', errorDetails)
-    
-    // Provide a more descriptive error back to the UI
-    const firstError = Object.entries(errorDetails)[0]
-    throw new Error(`AI generated an invalid plan: ${firstError ? `${firstError[0]} ${firstError[1]}` : 'Schema mismatch'}`)
+    console.error('[TaskEngine] LLM output failed Zod validation!')
+    console.error('[TaskEngine] Validation errors:', JSON.stringify(result.error.flatten().fieldErrors, null, 2))
+    console.error('[TaskEngine] Raw parsed object:', JSON.stringify(parsed, null, 2))
+    throw new Error(`LLM output validation failed: ${JSON.stringify(result.error.flatten().fieldErrors)}`)
   }
 
   console.log(`[TaskEngine] Tactical plan verified: ${result.data.tasks.length} tasks assigned.`)
@@ -101,26 +92,25 @@ Severity: ${incident.severity}
 Location: ${incident.zone} (Floor ${incident.floor})
 Details: ${incident.rawPayload}
 
-## AVAILABLE STAFF (assign each a task)
+## AVAILABLE STAFF
 ${JSON.stringify(staff, null, 2)}
 
-## PRIORITY GUESTS (mobility-impaired, require physical assistance)
+## PRIORITY GUESTS
 ${JSON.stringify(priorityGuests, null, 2)}
 
 ## ALL GUESTS ON AFFECTED FLOORS
 ${JSON.stringify(affectedFloorGuests, null, 2)}
 
-## HOTEL INFORMATION
-Total rooms: ${occupancyData.totalRooms}
-Occupied rooms: ${occupancyData.occupiedRooms}
-Assembly points: Main Entrance (Front Parking Lot), Side Exit B (Garden Area), Rear Exit (Service Road)
-Stairwells: Stairwell A (East), Stairwell B (West) — on every floor
-Elevators: DO NOT USE during fire or gas leak incidents
+## HOTEL GUIDELINES
+- Total rooms: ${occupancyData.totalRooms}
+- Assembly points: Main Entrance, Side Exit B, Rear Exit
+- Elevators: DO NOT USE during fire/gas events.
 
 ## YOUR TASK
 Generate a JSON task plan. Assign EXACTLY ONE task per available staff member.
 - Use the EXACT staffName and staffId from the AVAILABLE STAFF list. Do not hallucinate names.
 - Assign a "complexity" score (1-100) to each task representing the required skill/effort level.
+- Prioritize life safety and mobility-impaired guests.
 
 ## REQUIRED OUTPUT FORMAT
 You must return a JSON object with this EXACT structure. 
@@ -143,12 +133,11 @@ You must return a JSON object with this EXACT structure.
   ]
 }
 
-IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, no explanation text.`
+CRITICAL: Return ONLY the raw JSON object. No \`\`\`json blocks, no markdown, no preamble, no explanation.`
 }
 
 /**
  * Extract a JSON object from a potentially messy LLM response.
- * LLMs sometimes wrap JSON in markdown code blocks or add explanation text.
  */
 function extractJSON(raw: string): string {
   // First, try to find JSON between code block markers
