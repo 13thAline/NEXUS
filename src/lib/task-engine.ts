@@ -75,12 +75,19 @@ export async function generateTaskPlan(incident: IncidentInput): Promise<TaskPla
   const result = taskPlanSchema.safeParse(parsed)
 
   if (!result.success) {
+<<<<<<< HEAD
     const errorDetails = result.error.flatten().fieldErrors
     console.error('[TaskEngine] AI Output Schema Mismatch:', errorDetails)
     
     // Provide a more descriptive error back to the UI
     const firstError = Object.entries(errorDetails)[0]
     throw new Error(`AI generated an invalid plan: ${firstError ? `${firstError[0]} ${firstError[1]}` : 'Schema mismatch'}`)
+=======
+    console.error('[TaskEngine] LLM output failed Zod validation!')
+    console.error('[TaskEngine] Validation errors:', JSON.stringify(result.error.flatten().fieldErrors, null, 2))
+    console.error('[TaskEngine] Raw parsed object:', JSON.stringify(parsed, null, 2))
+    throw new Error(`LLM output validation failed: ${JSON.stringify(result.error.flatten().fieldErrors)}`)
+>>>>>>> origin/feature/ollama-fix
   }
 
   console.log(`[TaskEngine] Tactical plan verified: ${result.data.tasks.length} tasks assigned.`)
@@ -101,51 +108,47 @@ Severity: ${incident.severity}
 Location: ${incident.zone} (Floor ${incident.floor})
 Details: ${incident.rawPayload}
 
-## AVAILABLE STAFF (assign each a task)
+## AVAILABLE STAFF
 ${JSON.stringify(staff, null, 2)}
 
-## PRIORITY GUESTS (mobility-impaired, require physical assistance)
+## PRIORITY GUESTS
 ${JSON.stringify(priorityGuests, null, 2)}
 
 ## ALL GUESTS ON AFFECTED FLOORS
 ${JSON.stringify(affectedFloorGuests, null, 2)}
 
-## HOTEL INFORMATION
-Total rooms: ${occupancyData.totalRooms}
-Occupied rooms: ${occupancyData.occupiedRooms}
-Assembly points: Main Entrance (Front Parking Lot), Side Exit B (Garden Area), Rear Exit (Service Road)
-Stairwells: Stairwell A (East), Stairwell B (West) — on every floor
-Elevators: DO NOT USE during fire or gas leak incidents
+## HOTEL GUIDELINES
+- Total rooms: ${occupancyData.totalRooms}
+- Assembly points: Main Entrance, Side Exit B, Rear Exit
+- Elevators: DO NOT USE during fire/gas events.
 
 ## YOUR TASK
-Generate a JSON task plan that assigns exactly one task per available staff member.
-Prioritize: (1) life safety of guests, (2) containment, (3) communication, (4) documentation.
-Assign staff closest to the incident to the most urgent tasks.
-Staff with FIRE_WARDEN certification should handle fire-related coordination.
-Staff with CPR or FIRST_AID certification should handle medical tasks.
-Mobility-impaired guests MUST each be assigned a dedicated escort staff member.
-Task descriptions must be specific, actionable, and in plain English — think of them as radio commands.
+Generate a JSON task plan. Assign EXACTLY ONE task per available staff member.
+Prioritize life safety and mobility-impaired guests. Each mobility-impaired guest MUST have a dedicated escort.
 
-## OUTPUT FORMAT (JSON only — no explanation, no markdown, just the JSON object)
+## REQUIRED OUTPUT FORMAT
+You must return a JSON object with this EXACT structure. 
+The "tasks" field MUST be an array of OBJECTS, not strings.
+
 {
-  "incidentSummary": "One sentence describing what happened and what response is being coordinated.",
+  "incidentSummary": "Brief description of incident and response.",
   "escalationRecommended": true,
   "estimatedClearTime": "10 minutes",
   "tasks": [
     {
-      "staffId": "staff_001",
-      "staffName": "Ravi Sharma",
-      "staffRole": "SECURITY",
-      "description": "Proceed immediately to Floor 3 stairwell B. Direct guests from rooms 301-310 to ground floor assembly point via stairwell. Do not use lifts.",
+      "staffId": "string",
+      "staffName": "string",
+      "staffRole": "string",
+      "description": "Actionable command (min 10 chars).",
       "priority": 1,
       "floor": 3,
-      "zone": "Stairwell B - Floor 3",
-      "reasoning": "Ravi is the nearest security officer with FIRE_WARDEN certification and is already on Floor 1, making them fastest to reach Floor 3."
+      "zone": "string",
+      "reasoning": "Brief explanation."
     }
   ]
 }
 
-IMPORTANT: Return ONLY the JSON object. No markdown formatting, no code blocks, no explanation text.`
+CRITICAL: Return ONLY the raw JSON object. No \`\`\`json blocks, no markdown, no preamble, no explanation.`
 }
 
 /**
