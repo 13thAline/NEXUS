@@ -11,10 +11,11 @@ interface CCTVFeedProps {
 }
 
 export function CCTVFeed({ zone, floor, onExpand }: CCTVFeedProps) {
-  const [timestamp, setTimestamp] = useState(new Date().toISOString())
+  const [timestamp, setTimestamp] = useState<string | null>(null)
   const [flicker, setFlicker] = useState(false)
 
   useEffect(() => {
+    setTimestamp(new Date().toISOString())
     const timer = setInterval(() => {
       setTimestamp(new Date().toISOString())
       if (Math.random() > 0.95) {
@@ -82,7 +83,7 @@ export function CCTVFeed({ zone, floor, onExpand }: CCTVFeedProps) {
           </div>
         </div>
         <div className="text-[10px] font-mono text-white/70">
-           {timestamp.split('T')[1].split('.')[0]}
+           {timestamp ? timestamp.split('T')[1].split('.')[0] : '--:--:--'}
         </div>
       </div>
 
