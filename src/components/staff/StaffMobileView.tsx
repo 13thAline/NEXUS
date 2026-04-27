@@ -16,6 +16,7 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
   const [task, setTask] = useState(initialTask)
   const [connected, setConnected] = useState(false)
   const [newArrival, setNewArrival] = useState(false)
+  const [incidentStatus, setIncidentStatus] = useState<'IDLE' | 'ANALYZING' | 'ACTIVE'>(initialTask ? 'ACTIVE' : 'IDLE')
 
   useEffect(() => {
     const socket: Socket = io({ transports: ['websocket', 'polling'] })
@@ -27,8 +28,13 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
 
     socket.on('disconnect', () => setConnected(false))
 
+    socket.on('incident:created', () => {
+      if (!task) setIncidentStatus('ANALYZING')
+    })
+
     socket.on('task:new', ({ task: newTask }) => {
       setTask(newTask)
+      setIncidentStatus('ACTIVE')
       setNewArrival(true)
       setTimeout(() => setNewArrival(false), 5000)
     })
@@ -36,6 +42,13 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
     socket.on('task:updated', ({ taskId, status }) => {
       if (task?.id === taskId) {
         setTask((prev: any) => (prev ? { ...prev, status } : null))
+      }
+    })
+
+    socket.on('incident:updated', ({ status }) => {
+      if (status === 'RESOLVED') {
+        setTask(null)
+        setIncidentStatus('IDLE')
       }
     })
 
@@ -108,12 +121,16 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
               className="text-center relative z-10"
             >
               <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center mx-auto mb-8 relative">
-                 <div className="absolute inset-0 rounded-full border-t-2 border-white/10 animate-spin" />
-                 <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-ping" />
+                 <div className={`absolute inset-0 rounded-full border-t-2 ${incidentStatus === 'ANALYZING' ? 'border-orange-500' : 'border-white/10'} animate-spin`} />
+                 <div className={`w-1.5 h-1.5 rounded-full ${incidentStatus === 'ANALYZING' ? 'bg-orange-500 animate-pulse' : 'bg-white/20 animate-ping'}`} />
               </div>
-              <h2 className="text-sm font-black tracking-[0.4em] text-white/20 uppercase mb-2">Tactical Standby</h2>
+              <h2 className={`text-sm font-black tracking-[0.4em] uppercase mb-2 ${incidentStatus === 'ANALYZING' ? 'text-orange-500' : 'text-white/20'}`}>
+                {incidentStatus === 'ANALYZING' ? 'Incident Detected' : 'Tactical Standby'}
+              </h2>
               <p className="text-[10px] text-white/10 uppercase tracking-[0.2em] max-w-[200px] leading-relaxed mx-auto">
-                Monitoring hotel systems for anomalous signals...
+                {incidentStatus === 'ANALYZING' 
+                  ? 'NEXUS is analyzing the threat and assigning tactical roles...' 
+                  : 'Monitoring hotel systems for anomalous signals...'}
               </p>
             </motion.div>
           )}

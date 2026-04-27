@@ -149,12 +149,12 @@ export function IncidentHeader({ incident, generating, taskCount, completedCount
         {/* Incident info */}
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <h1 className="text-sm font-black tracking-widest uppercase italic">{type.replace('_', ' ')}</h1>
+            <h1 className="text-base font-black tracking-widest uppercase italic">{type.replace('_', ' ')}</h1>
             <Badge className={`text-[9px] px-2 py-0 font-black tracking-tighter ${SEVERITY_STYLES[severity]}`}>
               {severity}
             </Badge>
           </div>
-          <p className="text-[10px] text-white/40 font-mono uppercase tracking-tight">
+          <p className="text-[11px] text-white/50 font-mono uppercase tracking-tight">
             Sector {incident.zone} • L{incident.floor} • Coordination: AI Autopilot
           </p>
         </div>

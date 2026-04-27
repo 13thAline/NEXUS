@@ -42,13 +42,13 @@ export function LiveFeed({ logs, generating }: LiveFeedProps) {
               <Badge variant="outline" className={`text-[8px] font-black px-1.5 py-0 h-4 tracking-tighter uppercase ${SOURCE_COLORS[log.source] || SOURCE_COLORS.SYSTEM}`}>
                 {log.source}
               </Badge>
-              <span className="text-[9px] text-white/20 font-mono tracking-tighter">
+              <span className="text-[10px] text-white/40 font-mono tracking-tighter">
                 {new Date(log.createdAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             </div>
             <p className={`
-              text-[11px] leading-relaxed tracking-tight
-              ${log.source === 'LLM' ? 'text-orange-200/90 font-medium italic' : 'text-white/70'}
+              text-[12px] leading-relaxed tracking-tight
+              ${log.source === 'LLM' ? 'text-orange-200/90 font-medium italic' : 'text-white/80'}
               group-hover:text-white transition-colors
             `}>
               <span className="opacity-20 mr-2 font-mono">{'>'}</span>

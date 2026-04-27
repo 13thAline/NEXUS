@@ -107,8 +107,8 @@ function TaskCard({ task }: { task: Task }) {
           <User className="w-3.5 h-3.5 text-white/60" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-black uppercase tracking-wider truncate">{task.staffName}</div>
-          <div className="text-[9px] text-white/30 font-mono uppercase truncate">{task.id}</div>
+          <div className="text-[13px] font-black uppercase tracking-[0.05em] text-white/90 truncate">{task.staffName}</div>
+          <div className="text-[9px] text-white/30 font-mono uppercase tracking-tighter truncate">{task.id}</div>
         </div>
         <Badge variant="outline" className={`text-[9px] font-black px-2 py-0 h-4 ${roleStyle}`}>
           {task.staffRole}
