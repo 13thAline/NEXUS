@@ -7,12 +7,14 @@ import { z } from 'zod'
 
 export const taskSchema = z.object({
   staffId: z.string(),
+  // Ensure staffName matches the exact name provided in the staff directory
   staffName: z.string(),
   staffRole: z.string().optional().default('STAFF'),
-  description: z.string().min(5, 'Task description too short'),
-  priority: z.number().int().min(1).max(10).default(5),
-  floor: z.number().int().optional(),
-  zone: z.string().optional().default('GENERAL'),
+  description: z.string().min(10, 'Task description must be at least 10 characters'),
+  priority: z.number().int().min(1).max(10),
+  floor: z.number().int(),
+  zone: z.string(),
+  complexity: z.number().int().min(1).max(100).default(50),
   reasoning: z.string().optional(),
 })
 

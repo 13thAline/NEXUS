@@ -14,6 +14,15 @@ const SEVERITY_BG: Record<string, string> = {
   LOW: 'bg-green-950/20 border-green-500/15',
 }
 
+const ROLE_COLORS: Record<string, string> = {
+  SECURITY: 'text-red-400',
+  HOUSEKEEPING: 'text-blue-400',
+  ENGINEERING: 'text-orange-400',
+  FRONT_DESK: 'text-purple-400',
+  MANAGEMENT: 'text-violet-400',
+  MEDICAL: 'text-emerald-400',
+}
+
 interface TaskCardProps {
   task: Task & { incident?: { type: string; severity: string; zone: string } }
 }
@@ -22,17 +31,18 @@ export function TaskCard({ task }: TaskCardProps) {
   const [status, setStatus] = useState<TaskStatus>(task.status as TaskStatus)
   const severity = (task.incident?.severity || 'HIGH') as string
   const bgClass = SEVERITY_BG[severity] || SEVERITY_BG.HIGH
+  const roleColor = ROLE_COLORS[task.staffRole] || 'text-white'
 
   return (
-    <div className={`w-full max-w-md mx-auto rounded-2xl border p-6 ${bgClass}`}>
+    <div className={`w-full max-w-md mx-auto rounded-3xl border p-6 ${bgClass} shadow-2xl`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-lg font-bold">{task.staffName}</p>
-          <p className="text-sm text-muted-foreground">{task.staffRole}</p>
+          <p className={`text-xl font-black uppercase tracking-wider ${roleColor}`}>{task.staffName}</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-tighter opacity-60">{task.staffRole}</p>
         </div>
-        <Badge className={`severity-${severity.toLowerCase()}`}>
-          {task.incident?.type?.replace('_', ' ')} • {severity}
+        <Badge className={`severity-${severity.toLowerCase()} rounded-full px-3`}>
+          {task.incident?.type?.replace('_', ' ')}
         </Badge>
       </div>
 
@@ -47,6 +57,20 @@ export function TaskCard({ task }: TaskCardProps) {
       {/* Task description — the most important part */}
       <div className="bg-white/5 rounded-xl p-4 mb-4">
         <p className="text-lg leading-relaxed font-medium">{task.description}</p>
+      </div>
+
+      {/* Complexity / Skill Meter */}
+      <div className="mb-6 px-1">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Task Complexity</span>
+          <span className={`text-[10px] font-black ${roleColor}`}>{task.complexity}%</span>
+        </div>
+        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+          <div 
+            className={`h-full opacity-60 transition-all duration-700 ${roleColor.replace('text-', 'bg-')}`}
+            style={{ width: `${task.complexity}%` }}
+          />
+        </div>
       </div>
 
       {/* Location info */}

@@ -57,6 +57,7 @@ export interface Task {
   floor: number
   zone: string
   status: TaskStatus
+  complexity: number
   assignedAt: string | Date
   acknowledgedAt: string | Date | null
   completedAt: string | Date | null
@@ -111,6 +112,7 @@ export interface TaskPlanTask {
   priority: number
   floor?: number
   zone?: string
+  complexity: number
   reasoning?: string
 }
 

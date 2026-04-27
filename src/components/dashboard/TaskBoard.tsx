@@ -90,6 +90,9 @@ export function TaskBoard({ tasks, generating }: TaskBoardProps) {
 function TaskCard({ task }: { task: Task }) {
   const roleStyle = ROLE_COLORS[task.staffRole] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'
   const isHighPriority = task.priority <= 2
+  
+  // Extract role color for accents
+  const roleColorClass = roleStyle.split(' ').find(c => c.startsWith('text-')) || 'text-white'
 
   return (
     <Card className={`
@@ -97,39 +100,60 @@ function TaskCard({ task }: { task: Task }) {
       nexus-glass nexus-glass-hover overflow-hidden group
       ${isHighPriority ? 'shadow-[0_0_20px_rgba(239,68,68,0.1)] border-red-500/20' : ''}
     `}>
+      {/* Role specific top accent bar */}
+      <div className={`absolute top-0 left-0 w-full h-[2px] ${roleStyle.split(' ').find(c => c.startsWith('bg-'))?.replace('/10', '/40') || 'bg-white/10'}`} />
+
       {isHighPriority && (
-        <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/5 blur-2xl rounded-full -mr-8 -mt-8"></div>
+        <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/5 blur-3xl rounded-full -mr-10 -mt-10"></div>
       )}
 
       {/* Staff info */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-white/20">
-          <User className="w-3.5 h-3.5 text-white/60" />
+      <div className="flex items-start gap-2.5 mb-3.5">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-colors ${roleStyle.replace('/10', '/5')}`}>
+          <User className={`w-4 h-4 ${roleColorClass}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-black uppercase tracking-[0.05em] text-white/90 truncate">{task.staffName}</div>
-          <div className="text-[9px] text-white/30 font-mono uppercase tracking-tighter truncate">{task.id}</div>
+          <div className={`text-[12px] font-black uppercase tracking-widest ${roleColorClass} mb-0.5`}>
+            {task.staffName}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={`text-[8px] font-black px-1.5 py-0 h-3.5 uppercase tracking-tighter ${roleStyle}`}>
+              {task.staffRole}
+            </Badge>
+            <span className="text-[9px] text-white/20 font-mono tracking-tighter truncate">{task.staffId}</span>
+          </div>
         </div>
-        <Badge variant="outline" className={`text-[9px] font-black px-2 py-0 h-4 ${roleStyle}`}>
-          {task.staffRole}
-        </Badge>
       </div>
 
       {/* Task description */}
-      <p className="text-[11px] text-white/70 leading-relaxed mb-4 line-clamp-3 font-medium">
+      <p className="text-[11px] text-white/80 leading-relaxed mb-3 font-medium px-0.5">
         {task.description}
       </p>
 
-      {/* Footer: floor, zone, priority */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono tracking-tighter">
-          <MapPin className="w-3 h-3 text-red-500/50" />
-          <span>F{task.floor} • SECTOR {task.zone}</span>
+      {/* Complexity / Skill Meter */}
+      <div className="mb-4 px-0.5">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[8px] text-white/30 uppercase tracking-tighter font-bold">Complexity / Effort</span>
+          <span className={`text-[8px] font-bold ${roleColorClass}`}>{task.complexity}%</span>
         </div>
-        <div className={`px-2 py-0.5 rounded text-[9px] font-black tracking-tighter ${
+        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+          <div 
+            className={`h-full opacity-60 transition-all duration-500 ${roleColorClass.replace('text-', 'bg-')}`}
+            style={{ width: `${task.complexity}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Footer: floor, zone, priority */}
+      <div className="flex items-center justify-between pt-3 border-t border-white/10">
+        <div className="flex items-center gap-2 text-[9px] text-white/40 font-mono tracking-tighter">
+          <MapPin className="w-3 h-3 text-red-500/80" />
+          <span>F{task.floor} • {task.zone}</span>
+        </div>
+        <div className={`px-2 py-0.5 rounded text-[9px] font-black tracking-tighter shadow-sm ${
           isHighPriority ? 'bg-red-500 text-white' : 'bg-white/10 text-white/60'
         }`}>
-          PRIORITY {task.priority}
+          P{task.priority}
         </div>
       </div>
     </Card>

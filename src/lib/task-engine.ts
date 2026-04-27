@@ -118,29 +118,27 @@ Stairwells: Stairwell A (East), Stairwell B (West) — on every floor
 Elevators: DO NOT USE during fire or gas leak incidents
 
 ## YOUR TASK
-Generate a JSON task plan that assigns exactly one task per available staff member.
-Prioritize: (1) life safety of guests, (2) containment, (3) communication, (4) documentation.
-Assign staff closest to the incident to the most urgent tasks.
-Staff with FIRE_WARDEN certification should handle fire-related coordination.
-Staff with CPR or FIRST_AID certification should handle medical tasks.
-Mobility-impaired guests MUST each be assigned a dedicated escort staff member.
-Task descriptions must be specific, actionable, and in plain English — think of them as radio commands.
+Generate a JSON task plan. Assign EXACTLY ONE task per available staff member.
+- Use the EXACT staffName and staffId from the AVAILABLE STAFF list. Do not hallucinate names.
+- Assign a "complexity" score (1-100) to each task representing the required skill/effort level.
 
-## OUTPUT FORMAT (JSON only — no explanation, no markdown, just the JSON object)
+## REQUIRED OUTPUT FORMAT
+You must return a JSON object with this EXACT structure. 
 {
-  "incidentSummary": "One sentence describing what happened and what response is being coordinated.",
+  "incidentSummary": "Brief description of incident and response.",
   "escalationRecommended": true,
   "estimatedClearTime": "10 minutes",
   "tasks": [
     {
-      "staffId": "staff_001",
-      "staffName": "Ravi Sharma",
-      "staffRole": "SECURITY",
-      "description": "Proceed immediately to Floor 3 stairwell B. Direct guests from rooms 301-310 to ground floor assembly point via stairwell. Do not use lifts.",
+      "staffId": "string",
+      "staffName": "string",
+      "staffRole": "string",
+      "description": "Actionable command (min 10 chars).",
       "priority": 1,
       "floor": 3,
-      "zone": "Stairwell B - Floor 3",
-      "reasoning": "Ravi is the nearest security officer with FIRE_WARDEN certification and is already on Floor 1, making them fastest to reach Floor 3."
+      "zone": "string",
+      "complexity": 75,
+      "reasoning": "Brief explanation."
     }
   ]
 }

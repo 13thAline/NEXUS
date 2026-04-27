@@ -106,10 +106,11 @@ async function processTaskPlan(incident: any, plan: any) {
           staffName: task.staffName,
           staffRole: task.staffRole || 'STAFF',
           description: task.description,
-          priority: task.priority || 5,
-          floor: task.floor ?? incident.floor,
-          zone: task.zone ?? incident.zone,
-          llmReasoning: task.reasoning || 'Heuristic safety protocol.',
+          priority: task.priority,
+          floor: task.floor,
+          zone: task.zone,
+          complexity: task.complexity,
+          llmReasoning: task.reasoning ?? null,
         },
       })
     )
@@ -147,17 +148,23 @@ function generateHeuristicPlan(incident: any) {
     tasks: [
       {
         staffId: "staff_001",
-        staffName: "Marcus Thorne",
+        staffName: "Ravi Sharma",
         staffRole: "SECURITY",
         description: `Secure perimeter of Zone ${incident.zone} on Floor ${incident.floor}. Prevent unauthorized entry.`,
-        priority: 1
+        priority: 1,
+        floor: incident.floor,
+        zone: incident.zone,
+        complexity: 40
       },
       {
-        staffId: "staff_005",
-        staffName: "Sarah Chen",
-        staffRole: "MANAGEMENT",
+        staffId: "staff_004",
+        staffName: "Sunita Rao",
+        staffRole: "FRONT_DESK",
         description: `Initialize guest accountability for Floor ${incident.floor}. Prepare for potential evacuation.`,
-        priority: 2
+        priority: 2,
+        floor: incident.floor,
+        zone: incident.zone,
+        complexity: 30
       }
     ]
   }
