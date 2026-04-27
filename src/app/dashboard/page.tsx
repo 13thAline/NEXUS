@@ -7,7 +7,7 @@ import { IncidentHeader } from '@/components/dashboard/IncidentHeader'
 import { TaskBoard } from '@/components/dashboard/TaskBoard'
 import { LiveFeed } from '@/components/dashboard/LiveFeed'
 import { GuestRoll } from '@/components/dashboard/GuestRoll'
-import type { Incident, Task, IncidentLog } from '@/types'
+import type { Incident, Task, IncidentLog, LogSource } from '@/types'
 
 export default function DashboardPage() {
   const [incident, setIncident] = useState<Incident | null>(null)
@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const [generating, setGenerating] = useState(false)
   const [connected, setConnected] = useState(false)
 
-  const addLog = useCallback((message: string, source: string) => {
+  const addLog = useCallback((message: string, source: LogSource) => {
     setLogs(prev => [...prev, {
       id: `log-${Date.now()}-${Math.random()}`,
       incidentId: '',

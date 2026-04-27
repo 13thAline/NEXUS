@@ -1,5 +1,4 @@
-// src/lib/ollama.ts — Local LLM Client via Ollama
-// Uses the Ollama REST API directly for maximum control over generation parameters
+// src/lib/ollama.ts — FIXED VERSION
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
 const PRIMARY_MODEL = process.env.OLLAMA_MODEL || 'llama3:latest'
@@ -9,8 +8,6 @@ interface OllamaGenerateResponse {
   model: string
   response: string
   done: boolean
-  total_duration?: number
-  load_duration?: number
   eval_count?: number
   eval_duration?: number
 }
@@ -20,31 +17,26 @@ async function isModelAvailable(model: string): Promise<boolean> {
     const res = await fetch(`${OLLAMA_URL}/api/tags`)
     if (!res.ok) return false
     const data = await res.json()
-    return data.models?.some((m: { name: string }) => m.name.startsWith(model.split(':')[0])) ?? false
+    return data.models?.some((m: { name: string }) =>
+      m.name.startsWith(model.split(':')[0])
+    ) ?? false
   } catch {
     return false
   }
 }
 
 export const ollama = {
-  /**
-   * Send a prompt to the local LLM and get a JSON response.
-   * Automatically falls back to phi3:mini if the primary model fails.
-   */
   async chat(prompt: string): Promise<string> {
-    // Try primary model first
     try {
       return await generateWithModel(PRIMARY_MODEL, prompt)
     } catch (primaryError) {
       console.warn(`Primary model (${PRIMARY_MODEL}) failed:`, primaryError)
       console.log(`Falling back to ${FALLBACK_MODEL}...`)
 
-      // Check if fallback is available
       const fallbackAvailable = await isModelAvailable(FALLBACK_MODEL)
       if (!fallbackAvailable) {
         throw new Error(
-          `Both primary (${PRIMARY_MODEL}) and fallback (${FALLBACK_MODEL}) models unavailable. ` +
-          `Ensure Ollama is running at ${OLLAMA_URL} with at least one model pulled.`
+          `Both models unavailable. Ensure Ollama is running at ${OLLAMA_URL}`
         )
       }
 
@@ -52,27 +44,26 @@ export const ollama = {
     }
   },
 
-  /**
-   * Check if Ollama is reachable and has models available.
-   */
-  async healthCheck(): Promise<{ ok: boolean; models: string[]; error?: string }> {
+  async healthCheck() {
     try {
       const res = await fetch(`${OLLAMA_URL}/api/tags`)
-      if (!res.ok) {
-        return { ok: false, models: [], error: `Ollama returned ${res.status}` }
-      }
       const data = await res.json()
-      const models = data.models?.map((m: { name: string }) => m.name) ?? []
-      return { ok: true, models }
-    } catch (err) {
-      return { ok: false, models: [], error: `Cannot reach Ollama at ${OLLAMA_URL}` }
+      return {
+        ok: true,
+        models: data.models?.map((m: any) => m.name) ?? [],
+      }
+    } catch {
+      return { ok: false, models: [] }
     }
-  }
+  },
 }
 
-async function generateWithModel(model: string, prompt: string): Promise<string> {
+async function generateWithModel(
+  model: string,
+  prompt: string
+): Promise<string> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 120_000) // 2 minute timeout
+  const timeout = setTimeout(() => controller.abort(), 120_000)
 
   try {
     const response = await fetch(`${OLLAMA_URL}/api/generate`, {
@@ -82,28 +73,32 @@ async function generateWithModel(model: string, prompt: string): Promise<string>
         model,
         prompt,
         stream: false,
-        format: 'json',           // Force JSON output mode
+        format: 'json',
         options: {
-          temperature: 0.1,       // Low temp = deterministic, structured output
-          num_predict: 2048,      // Enough tokens for a full task plan
+          temperature: 0.1,
+          num_predict: 2048, // increased for complex plans
         },
       }),
       signal: controller.signal,
     })
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText)
-      throw new Error(`Ollama error (${model}): ${response.status} — ${errorText}`)
+      const err = await response.text()
+      throw new Error(`Ollama error (${model}): ${err}`)
     }
 
     const data: OllamaGenerateResponse = await response.json()
 
     if (data.eval_duration) {
-      const tokensPerSec = (data.eval_count ?? 0) / (data.eval_duration / 1e9)
-      console.log(`[Ollama] ${model}: ${data.eval_count} tokens in ${(data.eval_duration / 1e9).toFixed(1)}s (${tokensPerSec.toFixed(1)} tok/s)`)
+      const tps =
+        (data.eval_count ?? 0) / (data.eval_duration / 1e9)
+      console.log(
+        `[Ollama] ${model}: ${data.eval_count} tokens in ${(data.eval_duration / 1e9).toFixed(1)}s (${tps.toFixed(1)} tok/s)`
+      )
     }
 
     return data.response
+
   } finally {
     clearTimeout(timeout)
   }
