@@ -34,7 +34,7 @@ export default function HomePage() {
       <div 
         className="absolute inset-0 opacity-[0.15] pointer-events-none"
         style={{
-          background: `radial-gradient(circle at ${mousePos.x}px ${mousePos.y}px, rgba(239, 68, 68, 0.15), transparent 25%), 
+          backgroundImage: `radial-gradient(circle at ${mousePos.x}px ${mousePos.y}px, rgba(239, 68, 68, 0.15), transparent 25%), 
                        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), 
                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
           backgroundSize: '100% 100%, 40px 40px, 40px 40px',
