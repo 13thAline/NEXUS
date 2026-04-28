@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       const tasks = await prisma.task.findMany({
         where: {
           staffId,
-          status: { not: 'DONE' },
+          status: { not: 'COMPLETE' },
           incident: { status: 'ACTIVE' },
         },
         include: { incident: true },
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     // Default: get tasks for the latest active incident
     const latestIncident = await prisma.incident.findFirst({
       where: { status: 'ACTIVE' },
-      orderBy: { triggeredAt: 'desc' },
+      orderBy: { timestamp: 'desc' },
     })
 
     if (!latestIncident) {

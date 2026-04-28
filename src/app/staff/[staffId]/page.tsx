@@ -8,7 +8,7 @@ export default async function StaffPage({ params }: { params: Promise<{ staffId:
   const task = await prisma.task.findFirst({
     where: {
       staffId,
-      status: { not: 'DONE' },
+      status: { not: 'COMPLETE' },
       incident: { status: { in: ['ACTIVE', 'CONTAINED'] } },
     },
     include: { 

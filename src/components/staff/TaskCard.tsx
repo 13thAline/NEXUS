@@ -59,16 +59,16 @@ export function TaskCard({ task }: TaskCardProps) {
         <p className="text-lg leading-relaxed font-medium">{task.description}</p>
       </div>
 
-      {/* Complexity / Skill Meter */}
+      {/* Priority Level */}
       <div className="mb-6 px-1">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Task Complexity</span>
-          <span className={`text-[10px] font-black ${roleColor}`}>{task.complexity}%</span>
+          <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Priority Level</span>
+          <span className={`text-[10px] font-black ${roleColor}`}>P{task.priority}</span>
         </div>
         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
           <div 
             className={`h-full opacity-60 transition-all duration-700 ${roleColor.replace('text-', 'bg-')}`}
-            style={{ width: `${task.complexity}%` }}
+            style={{ width: `${Math.max(10, 100 - (task.priority * 15))}%` }}
           />
         </div>
       </div>

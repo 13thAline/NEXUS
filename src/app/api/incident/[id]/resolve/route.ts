@@ -1,7 +1,8 @@
+// src/app/api/incident/[id]/resolve/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { transitionIncident } from '@/lib/incident-state'
-import { emitToAll } from '@/lib/socket'
+import { updateFirestoreIncident } from '@/lib/firebase-admin'
 
 export async function POST(
   req: NextRequest,
@@ -9,18 +10,21 @@ export async function POST(
 ) {
   try {
     const { id: incidentId } = await params
-    
-    // Resolve the incident
+
+    // Resolve the incident (writes to Firestore internally)
     const incident = await transitionIncident(incidentId, 'RESOLVED')
 
-    // Mark all pending tasks as DONE (if any left)
+    // Mark all pending tasks as COMPLETE
     await prisma.task.updateMany({
-      where: { incidentId, status: { not: 'DONE' } },
-      data: { status: 'DONE', completedAt: new Date() }
+      where: { incidentId, status: { not: 'COMPLETE' } },
+      data: { status: 'COMPLETE', completedAt: new Date() },
     })
 
-    // Broadcast to all
-    emitToAll('incident:updated', { incidentId, status: 'RESOLVED' })
+    // Update Firestore with final resolved state
+    await updateFirestoreIncident(incidentId, {
+      status: 'RESOLVED',
+      resolvedAt: new Date().toISOString(),
+    })
 
     return NextResponse.json({ success: true, incident })
   } catch (error: any) {

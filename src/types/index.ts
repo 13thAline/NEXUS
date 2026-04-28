@@ -1,21 +1,23 @@
 // src/types/index.ts — Shared TypeScript types for NEXUS
 
-// ─── Enums ────────────────────────────────────────────────────────
+// ─── Pipeline Status ──────────────────────────────────────
 
-export type IncidentType =
-  | 'FIRE'
-  | 'ACTIVE_SHOOTER'
-  | 'MEDICAL'
-  | 'GAS_LEAK'
-  | 'STRUCTURAL'
-  | 'EVACUATION'
-  | 'SECURITY'
+export type PipelineStatus =
+  | 'PENDING'
+  | 'TRIAGING'
+  | 'BUILDING_GRAPH'
+  | 'COMPUTING_PRIORITIES'
+  | 'GENERATING_STRATEGY'
+  | 'ACTIVE'
+  | 'CONTAINED'
+  | 'RESOLVED'
+  | 'PIPELINE_FAILED'
+
+export type IncidentStatus = PipelineStatus
+
+export type TaskStatus = 'PENDING' | 'ACKNOWLEDGED' | 'COMPLETE'
 
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-
-export type IncidentStatus = 'ACTIVE' | 'CONTAINED' | 'RESOLVED'
-
-export type TaskStatus = 'PENDING' | 'ACKNOWLEDGED' | 'IN_PROGRESS' | 'DONE'
 
 export type StaffRole =
   | 'SECURITY'
@@ -27,22 +29,28 @@ export type StaffRole =
 
 export type LogSource = 'SYSTEM' | 'STAFF' | 'LLM' | 'SENSOR'
 
-// ─── Database Models (mirrors Prisma schema) ─────────────────────
+// ─── Database Models ──────────────────────────────────────
 
 export interface Incident {
   id: string
-  type: IncidentType
-  severity: Severity
-  zone: string
-  floor: number
-  status: IncidentStatus
-  triggeredAt: string | Date
-  resolvedAt: string | Date | null
+  source: string
   rawPayload: string
+  timestamp: string | Date
+  status: IncidentStatus
+  llmReasoning: string | null
+  coverageGaps: string | null
+  warnings: string | null
+  generatedBy: string | null
+  pipelineMs: number | null
+  resolvedAt: string | Date | null
+  type: string | null
+  severity: string | null
+  zone: string | null
+  floor: number | null
+  analysisReport: string | null
+  metrics: string | null
   tasks?: Task[]
-  events?: IncidentLog[]
-  analysisReport?: string | null
-  metrics?: string | null
+  logs?: IncidentLog[]
 }
 
 export interface Task {
@@ -57,7 +65,6 @@ export interface Task {
   floor: number
   zone: string
   status: TaskStatus
-  complexity: number
   assignedAt: string | Date
   acknowledgedAt: string | Date | null
   completedAt: string | Date | null
@@ -67,17 +74,17 @@ export interface Task {
 export interface IncidentLog {
   id: string
   incidentId: string
-  message: string
-  source: LogSource
-  createdAt: string | Date
+  event: string
+  data: string
+  timestamp: string | Date
 }
 
-// ─── Mock Data Types ─────────────────────────────────────────────
+// ─── Seed Data Types ──────────────────────────────────────
 
 export interface StaffMember {
   id: string
   name: string
-  role: StaffRole
+  role: StaffRole | string
   subRole: string
   floor: number
   zone: string
@@ -102,39 +109,7 @@ export interface OccupancyData {
   guests: GuestRoom[]
 }
 
-// ─── LLM Task Plan Output ────────────────────────────────────────
-
-export interface TaskPlanTask {
-  staffId: string
-  staffName: string
-  staffRole?: string
-  description: string
-  priority: number
-  floor?: number
-  zone?: string
-  complexity: number
-  reasoning?: string
-}
-
-export interface TaskPlan {
-  incidentSummary: string
-  escalationRecommended: boolean
-  estimatedClearTime: string
-  tasks: TaskPlanTask[]
-}
-
-// ─── API Input Types ─────────────────────────────────────────────
-
-export interface IncidentTriggerInput {
-  type: IncidentType
-  severity: Severity
-  floor: number
-  zone: string
-  source?: string
-  rawPayload?: string
-}
-
-// ─── Hotel Layout ────────────────────────────────────────────────
+// ─── Hotel Layout ─────────────────────────────────────────
 
 export interface HotelZone {
   id: string
@@ -157,25 +132,31 @@ export interface HotelLayout {
   assemblyPoints: string[]
 }
 
-// ─── Socket.io Event Types ───────────────────────────────────────
+// ─── LLM Pipeline Types ──────────────────────────────────
 
-export interface IncidentCreatedEvent {
-  incident: Incident
+export interface TaskPlan {
+  incidentSummary: string
+  escalationRecommended: boolean
+  estimatedClearTime: string
+  tasks: TaskPlanTask[]
 }
 
-export interface TasksAssignedEvent {
-  incidentId: string
-  tasks: Task[]
-  summary: string
-}
-
-export interface TaskUpdatedEvent {
-  taskId: string
-  status: TaskStatus
+export interface TaskPlanTask {
+  staffId: string
   staffName: string
+  staffRole?: string
+  description: string
+  priority: number
+  floor?: number
+  zone?: string
+  reasoning?: string
 }
 
-export interface TasksErrorEvent {
-  incidentId: string
-  error: string
+// ─── API Input Types ──────────────────────────────────────
+
+export interface IncidentTriggerInput {
+  source: string
+  rawPayload: string
+  timestamp?: string
+  cctvFrame?: string
 }

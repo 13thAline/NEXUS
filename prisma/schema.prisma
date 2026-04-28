@@ -1,27 +1,39 @@
-// prisma/schema.prisma
+// prisma/schema.prisma — NEXUS Database Schema
+// PostgreSQL on Cloud SQL (replaces SQLite)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Incident {
-  id          String        @id @default(cuid())
-  type        String        // FIRE | ACTIVE_SHOOTER | MEDICAL | GAS_LEAK | STRUCTURAL | EVACUATION
-  severity    String        // LOW | MEDIUM | HIGH | CRITICAL
-  zone        String        // e.g. "Floor 3 - Room 304 corridor"
-  floor       Int
-  status      String        @default("ACTIVE")  // ACTIVE | CONTAINED | RESOLVED
-  triggeredAt DateTime      @default(now())
-  resolvedAt  DateTime?
-  rawPayload  String        // Original JSON from sensor/source system
-  tasks       Task[]
-  events      IncidentLog[]
-  analysisReport String?
+  id             String        @id @default(cuid())
+  source         String        // e.g. "FIRE_PANEL_ZONE_3E", "GUEST_PANIC_BUTTON_512"
+  rawPayload     String        @db.Text
+  timestamp      DateTime      @default(now())
+  status         String        @default("PENDING") // PENDING | TRIAGING | BUILDING_GRAPH | COMPUTING_PRIORITIES | GENERATING_STRATEGY | ACTIVE | CONTAINED | RESOLVED | PIPELINE_FAILED
+  llmReasoning   String?       @db.Text
+  coverageGaps   String?       // JSON string array
+  warnings       String?       // JSON string array
+  generatedBy    String?       // "gemini-pro" | "gemma-fallback"
+  pipelineMs     Int?
+  resolvedAt     DateTime?
+
+  // Legacy fields kept for backward compat with existing frontend
+  type           String?       // Populated by Stage 1 triage
+  severity       String?       // Populated by Stage 1 triage
+  zone           String?       // Populated by Stage 1 triage
+  floor          Int?          // Populated by Stage 1 triage
+
+  // Reports (populated after containment)
+  analysisReport String?       @db.Text
   metrics        String?
+
+  tasks          Task[]
+  logs           IncidentLog[]
 }
 
 model Task {
@@ -31,23 +43,22 @@ model Task {
   staffId        String
   staffName      String
   staffRole      String
-  description    String    // Plain English: what this person needs to do
-  priority       Int       // 1 = highest priority
-  floor          Int       // Where this task takes place
+  description    String    @db.Text
+  priority       Int
+  floor          Int
   zone           String
-  status         String    @default("PENDING")  // PENDING | ACKNOWLEDGED | IN_PROGRESS | DONE
+  status         String    @default("PENDING") // PENDING | ACKNOWLEDGED | COMPLETE
+  llmReasoning   String?   @db.Text
   assignedAt     DateTime  @default(now())
   acknowledgedAt DateTime?
   completedAt    DateTime?
-  llmReasoning   String?   // Why the LLM assigned this task to this person
-  complexity     Int       @default(50) // 1-100 skill/effort meter
 }
 
 model IncidentLog {
   id         String   @id @default(cuid())
   incidentId String
   incident   Incident @relation(fields: [incidentId], references: [id])
-  message    String
-  source     String   // SYSTEM | STAFF | LLM | SENSOR
-  createdAt  DateTime @default(now())
+  event      String
+  data       String   @db.Text @default("")
+  timestamp  DateTime @default(now())
 }

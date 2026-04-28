@@ -2,7 +2,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { io, Socket } from 'socket.io-client'
+import { clientDb, clientAuth } from '@/lib/firebase-client'
+import { doc, collection, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
 import { IncidentHeader } from '@/components/dashboard/IncidentHeader'
 import { TaskBoard } from '@/components/dashboard/TaskBoard'
 import { LiveFeed } from '@/components/dashboard/LiveFeed'
@@ -28,13 +30,13 @@ export default function DashboardPage() {
   const [search, setSearch] = useState('')
   const { playAlert, playChirp, playPing } = useTacticalAudio()
 
-  const addLog = useCallback((message: string, source: LogSource, id?: string, createdAt?: string) => {
+  const addLog = useCallback((event: string, id?: string, timestamp?: string) => {
     setLogs(prev => [...prev, {
       id: id || `log-${Date.now()}-${Math.random()}`,
       incidentId: '',
-      message,
-      source,
-      createdAt: createdAt || new Date().toISOString(),
+      event,
+      data: '',
+      timestamp: timestamp || new Date().toISOString(),
     }])
   }, [])
 
@@ -51,9 +53,9 @@ export default function DashboardPage() {
             setLogs(data.logs.map((l: any) => ({
               id: l.id,
               incidentId: l.incidentId,
-              message: l.message,
-              source: l.source as LogSource,
-              createdAt: l.createdAt
+              event: l.event,
+              data: l.data || '',
+              timestamp: l.timestamp,
             })))
           }
         }
@@ -77,62 +79,113 @@ export default function DashboardPage() {
     })
   }, [])
 
+  // Firestore real-time listener for active incident
   useEffect(() => {
-    const socket: Socket = io({ transports: ['websocket', 'polling'] })
+    let unsubIncident: (() => void) | undefined
+    let unsubTasks: (() => void) | undefined
 
-    socket.on('connect', () => {
-      setConnected(true)
-      socket.emit('join:dashboard')
-    })
+    const fetchAndListen = async () => {
+      try {
+        const res = await fetch('/api/incident/active')
+        const data = await res.json()
+        if (!data.active || !data.incident?.id) {
+          setConnected(true)
+          return
+        }
 
-    socket.on('disconnect', () => setConnected(false))
+        const incidentId = data.incident.id
 
-    socket.on('incident:created', ({ incident: inc }) => {
-      setIncident(inc)
-      setGenerating(true)
-      setTasks([])
-      playAlert()
-      addLog(`🚨 Incident detected: ${inc.type} (${inc.severity}) — Zone ${inc.zone}, L${inc.floor}`, 'SENSOR')
-    })
+        // Listen to incident document for status changes
+        unsubIncident = onSnapshot(
+          doc(clientDb, 'incidents', incidentId),
+          (snap) => {
+            if (!snap.exists()) return
+            const d = snap.data()
+            setConnected(true)
 
-    socket.on('tasks:assigned', ({ tasks: newTasks, summary, estimatedClearTime, escalationRecommended }) => {
-      setTasks(newTasks)
-      setGenerating(false)
-      addLog(`🧠 NEXUS: ${summary}`, 'LLM')
-      addLog(`⏱️ Projected resolution window: ${estimatedClearTime}${escalationRecommended ? ' • ⚠️ External escalation required' : ''}`, 'LLM')
-    })
+            // Update status
+            setIncident(prev => prev ? { ...prev, ...d } : prev)
 
-    socket.on('task:updated', ({ taskId, status, staffName, action }) => {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t))
-      const actionText = action === 'ACKNOWLEDGE' ? 'DISPATCHED' : 'SECURED'
-      if (action === 'COMPLETE') playChirp()
-      addLog(`✅ ${staffName}: Task ${actionText}`, 'STAFF')
-    })
+            // Handle pipeline stages
+            if (d.status === 'TRIAGING') {
+              setGenerating(true)
+              playAlert()
+              addLog(`🚨 Incident detected from ${d.source}`)
+            } else if (d.status === 'ACTIVE') {
+              setGenerating(false)
+              addLog(`🧠 NEXUS pipeline complete (${d.generatedBy || 'ai'}). ${d.taskCount || 0} tasks assigned.`)
+              // Refresh tasks from API
+              fetch(`/api/incident/${incidentId}`)
+                .then(r => r.json())
+                .then(inc => { if (inc.tasks) setTasks(inc.tasks) })
+                .catch(console.error)
+            } else if (d.status === 'PIPELINE_FAILED') {
+              setGenerating(false)
+              addLog(`❌ Pipeline failed`)
+            } else if (d.status === 'RESOLVED') {
+              setIncident(null)
+              setTasks([])
+              setLogs([])
+              addLog(`📋 Incident resolved`)
+            } else if (d.status === 'CONTAINED') {
+              addLog(`📋 Incident contained`)
+            }
 
-    socket.on('incident:report_ready', ({ report, metrics }) => {
-      setIncident(prev => prev ? { ...prev, analysisReport: report.summary + "\n\nSuccesses: " + report.successes.join(", ") + "\nImprovements: " + report.improvements.join(", "), metrics: JSON.stringify(metrics) } : null)
-      playChirp()
-      addLog(`📈 AI Analysis complete. Report and metrics available for review.`, 'SYSTEM')
-    })
+            // Handle report ready
+            if (d.reportReady && d.analysisReport) {
+              setIncident(prev => prev ? { ...prev, analysisReport: d.analysisReport, metrics: d.metrics } : null)
+              playChirp()
+              addLog(`📈 AI Analysis complete.`)
+            }
+          },
+          (err) => {
+            console.error('Firestore listener error:', err)
+            setConnected(false)
+          }
+        )
 
-    socket.on('tasks:error', ({ error }) => {
-      setGenerating(false)
-      addLog(`❌ System fault: ${error}`, 'SYSTEM')
-    })
-
-    socket.on('incident:updated', ({ incidentId, status }) => {
-      if (status === 'RESOLVED') {
-        setIncident(null)
-        setTasks([])
-        setLogs([])
-      } else {
-        setIncident(prev => prev && prev.id === incidentId ? { ...prev, status } : prev)
+        // Listen to tasks subcollection
+        unsubTasks = onSnapshot(
+          collection(clientDb, 'incidents', incidentId, 'tasks'),
+          (snap) => {
+            snap.docChanges().forEach(change => {
+              if (change.type === 'modified') {
+                const taskData = change.doc.data()
+                setTasks(prev => prev.map(t =>
+                  t.staffId === taskData.staffId ? { ...t, status: taskData.status } : t
+                ))
+                if (taskData.status === 'COMPLETE') playChirp()
+                addLog(`✅ ${taskData.staffName}: Task ${taskData.status === 'ACKNOWLEDGED' ? 'DISPATCHED' : 'SECURED'}`)
+              }
+            })
+          }
+        )
+      } catch (err) {
+        console.error('Firestore setup error:', err)
+        setConnected(false)
       }
-      addLog(`📋 Operation status update: ${status}`, 'SYSTEM')
+    }
+
+    const unsubAuth = onAuthStateChanged(clientAuth, async (user) => {
+      if (user) {
+        fetchAndListen()
+      } else {
+        try {
+          await signInAnonymously(clientAuth)
+        } catch (e) {
+          console.error('Anonymous auth failed:', e)
+          // Try anyway
+          fetchAndListen()
+        }
+      }
     })
 
-    return () => { socket.disconnect() }
-  }, [addLog])
+    return () => {
+      unsubAuth()
+      if (unsubIncident) unsubIncident()
+      if (unsubTasks) unsubTasks()
+    }
+  }, [addLog, playAlert, playChirp])
 
   const handleResolve = async () => {
     if (!incident) return
@@ -140,7 +193,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`/api/incident/${incident.id}/resolve`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to resolve incident')
-      // Socket will handle the state update
+      // Firestore listener will handle the state update
     } catch (err) {
       console.error('Resolve error:', err)
       alert('Resolution failed. Check terminal.')
@@ -149,7 +202,7 @@ export default function DashboardPage() {
     }
   }
 
-  const completedCount = tasks.filter(t => t.status === 'DONE').length
+  const completedCount = tasks.filter(t => t.status === 'COMPLETE').length
   const showReport = incident?.status === 'CONTAINED' || incident?.analysisReport
 
   return (
@@ -192,8 +245,8 @@ export default function DashboardPage() {
           >
             <div className="h-[45%] nexus-glass rounded-2xl overflow-hidden border-white/5 shadow-2xl">
               <CCTVFeed 
-                zone={incident?.zone} 
-                floor={incident?.floor} 
+                zone={incident?.zone ?? undefined} 
+                floor={incident?.floor ?? undefined} 
                 onExpand={() => { playPing(); setFocusedComponent('CCTV') }} 
               />
             </div>
@@ -248,7 +301,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-4 text-[10px] font-mono text-white/20">
-          <span>AI CORE: Llama 3 (8B)</span>
+          <span>AI CORE: Gemini 2.5 Pro</span>
           <div className="w-[1px] h-3 bg-white/10"></div>
           <span>NODE: Nexus-Local-01</span>
         </div>
@@ -260,7 +313,7 @@ export default function DashboardPage() {
         onClose={() => setFocusedComponent(null)}
         title="Visual Intelligence"
       >
-        <CCTVFeed zone={incident?.zone} floor={incident?.floor} />
+        <CCTVFeed zone={incident?.zone ?? undefined} floor={incident?.floor ?? undefined} />
       </TacticalModal>
 
       <TacticalModal 

@@ -36,26 +36,34 @@ export function LiveFeed({ logs, generating }: LiveFeedProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 nexus-scrollbar nexus-terminal">
-        {logs.map((log, i) => (
+        {logs.map((log, i) => {
+          // Derive source from event content for badge styling
+          const source = log.event.includes('🚨') ? 'SENSOR'
+            : log.event.includes('🧠') || log.event.includes('📈') ? 'LLM'
+            : log.event.includes('✅') ? 'STAFF'
+            : 'SYSTEM'
+
+          return (
           <div key={log.id || i} className="animate-nexus-slide-in group border-l border-white/5 pl-4 ml-1 hover:border-white/20 transition-colors">
             <div className="flex items-center gap-2 mb-1.5">
-              <Badge variant="outline" className={`text-[8px] font-black px-1.5 py-0 h-4 tracking-tighter uppercase ${SOURCE_COLORS[log.source] || SOURCE_COLORS.SYSTEM}`}>
-                {log.source}
+              <Badge variant="outline" className={`text-[8px] font-black px-1.5 py-0 h-4 tracking-tighter uppercase ${SOURCE_COLORS[source] || SOURCE_COLORS.SYSTEM}`}>
+                {source}
               </Badge>
               <span className="text-[10px] text-white/40 font-mono tracking-tighter">
-                {new Date(log.createdAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             </div>
             <p className={`
               text-[12px] leading-relaxed tracking-tight
-              ${log.source === 'LLM' ? 'text-orange-200/90 font-medium italic' : 'text-white/80'}
+              ${source === 'LLM' ? 'text-orange-200/90 font-medium italic' : 'text-white/80'}
               group-hover:text-white transition-colors
             `}>
               <span className="opacity-20 mr-2 font-mono">{'>'}</span>
-              {log.message}
+              {log.event}
             </p>
           </div>
-        ))}
+          )
+        })}
         {logs.length === 0 && (
           <div className="h-full flex items-center justify-center">
              <div className="text-center group">

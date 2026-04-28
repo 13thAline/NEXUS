@@ -8,11 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { User, MapPin, ArrowRight } from 'lucide-react'
 import type { Task, TaskStatus } from '@/types'
 
-const COLUMNS: { key: TaskStatus; label: string; color: string }[] = [
+const COLUMNS: { key: string; label: string; color: string }[] = [
   { key: 'PENDING', label: 'Triage', color: 'text-yellow-400' },
   { key: 'ACKNOWLEDGED', label: 'Dispatched', color: 'text-blue-400' },
-  { key: 'IN_PROGRESS', label: 'Active', color: 'text-purple-400' },
-  { key: 'DONE', label: 'Secured', color: 'text-green-400' },
+  { key: 'COMPLETE', label: 'Secured', color: 'text-green-400' },
 ]
 
 const ROLE_COLORS: Record<string, string> = {
@@ -55,7 +54,7 @@ export function TaskBoard({ tasks, generating }: TaskBoardProps) {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-3 h-full">
+    <div className="grid grid-cols-3 gap-3 h-full">
       {COLUMNS.map((col) => {
         const columnTasks = tasks.filter(t => t.status === col.key)
 
@@ -130,16 +129,16 @@ function TaskCard({ task }: { task: Task }) {
         {task.description}
       </p>
 
-      {/* Complexity / Skill Meter */}
+      {/* Complexity / Priority */}
       <div className="mb-4 px-0.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[8px] text-white/30 uppercase tracking-tighter font-bold">Complexity / Effort</span>
-          <span className={`text-[8px] font-bold ${roleColorClass}`}>{task.complexity}%</span>
+          <span className="text-[8px] text-white/30 uppercase tracking-tighter font-bold">Priority Level</span>
+          <span className={`text-[8px] font-bold ${roleColorClass}`}>P{task.priority}</span>
         </div>
         <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
           <div 
             className={`h-full opacity-60 transition-all duration-500 ${roleColorClass.replace('text-', 'bg-')}`}
-            style={{ width: `${task.complexity}%` }}
+            style={{ width: `${Math.max(10, 100 - (task.priority * 15))}%` }}
           />
         </div>
       </div>

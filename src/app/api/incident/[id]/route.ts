@@ -1,12 +1,11 @@
 // src/app/api/incident/[id]/route.ts
 // GET — Returns full incident state with tasks and logs
-// PATCH — Update incident status (ACTIVE → CONTAINED → RESOLVED)
+// PATCH — Update incident status
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { transitionIncident } from '@/lib/incident-state'
 import { incidentUpdateSchema } from '@/lib/validators'
-import { emitToAll } from '@/lib/socket'
 
 export async function GET(
   req: NextRequest,
@@ -19,7 +18,7 @@ export async function GET(
       where: { id },
       include: {
         tasks: { orderBy: { priority: 'asc' } },
-        events: { orderBy: { createdAt: 'desc' } },
+        logs: { orderBy: { timestamp: 'desc' } },
       },
     })
 
@@ -50,13 +49,8 @@ export async function PATCH(
       )
     }
 
+    // transitionIncident already writes to Firestore for real-time updates
     const updated = await transitionIncident(id, parsed.data.status)
-
-    // Broadcast status change to all connected clients
-    emitToAll('incident:updated', {
-      incidentId: id,
-      status: updated.status,
-    })
 
     return NextResponse.json(updated)
   } catch (error) {

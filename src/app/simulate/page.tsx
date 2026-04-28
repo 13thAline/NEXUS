@@ -91,12 +91,9 @@ export default function SimulatePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: scenario.type,
-          severity: scenario.severity,
-          floor: scenario.floor,
-          zone: scenario.zone,
           source: scenario.source,
           rawPayload: scenario.rawPayload,
+          timestamp: new Date().toISOString(),
         }),
       })
 

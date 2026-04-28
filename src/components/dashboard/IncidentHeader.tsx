@@ -4,9 +4,9 @@
 import { useEffect, useState, useRef } from 'react'
 import { Flame, Shield, Heart, Wind, Building, AlertTriangle, Siren, Activity } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { Incident, IncidentType, Severity } from '@/types'
+import type { Incident, Severity } from '@/types'
 
-const INCIDENT_ICONS: Record<IncidentType, React.ReactNode> = {
+const INCIDENT_ICONS: Record<string, React.ReactNode> = {
   FIRE: <Flame className="w-5 h-5" />,
   ACTIVE_SHOOTER: <Shield className="w-5 h-5" />,
   MEDICAL: <Heart className="w-5 h-5" />,
@@ -23,7 +23,7 @@ const SEVERITY_STYLES: Record<Severity, string> = {
   LOW: 'severity-low',
 }
 
-const INCIDENT_COLORS: Record<IncidentType, string> = {
+const INCIDENT_COLORS: Record<string, string> = {
   FIRE: 'text-red-400',
   ACTIVE_SHOOTER: 'text-red-500',
   MEDICAL: 'text-blue-400',
@@ -90,7 +90,7 @@ export function IncidentHeader({ incident, generating, taskCount, completedCount
       lastIncidentId.current = incident.id
     }
 
-    const startTime = new Date(incident.triggeredAt).getTime()
+    const startTime = new Date(incident.timestamp).getTime()
     const timer = setInterval(() => {
       const diff = Date.now() - startTime
       const mins = Math.floor(diff / 60000)
@@ -125,8 +125,8 @@ export function IncidentHeader({ incident, generating, taskCount, completedCount
     )
   }
 
-  const type = incident.type as IncidentType
-  const severity = incident.severity as Severity
+  const type = (incident.type || 'FIRE') as string
+  const severity = (incident.severity || 'HIGH') as Severity
 
   return (
     <header className={`h-16 px-6 flex items-center justify-between border-b border-white/5 ${
@@ -155,7 +155,7 @@ export function IncidentHeader({ incident, generating, taskCount, completedCount
             </Badge>
           </div>
           <p className="text-[11px] text-white/50 font-mono uppercase tracking-tight">
-            Sector {incident.zone} • L{incident.floor} • Coordination: AI Autopilot
+            Sector {incident.zone || 'Unknown'} • L{incident.floor || 1} • Coordination: AI Autopilot
           </p>
         </div>
       </div>

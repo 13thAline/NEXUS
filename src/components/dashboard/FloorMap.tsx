@@ -53,8 +53,8 @@ export function FloorMap({ incident, tasks, guests = [], evacuated = new Set(), 
             </div>
             <div className="flex-1 grid grid-cols-4 gap-2">
               {ZONES.map((zone) => {
-                const isZoneMatch = incident?.zone.toUpperCase().includes(zone)
-                const isSpecialMatch = incident && (
+                const isZoneMatch = incident?.zone?.toUpperCase().includes(zone)
+                const isSpecialMatch = incident && incident.zone && (
                   (zone === 'NORTH' && incident.zone.includes('Kitchen')) ||
                   (zone === 'SOUTH' && incident.zone.includes('Engineering')) ||
                   (zone === 'EAST' && incident.zone.includes('Room 407'))
@@ -66,7 +66,7 @@ export function FloorMap({ incident, tasks, guests = [], evacuated = new Set(), 
                 const staffInCell = tasks.filter(t => 
                   t.floor === floor && 
                   t.zone.toUpperCase().includes(zone) &&
-                  t.status !== 'DONE'
+                  t.status !== 'COMPLETE'
                 )
 
                 // Find non-evacuated guests in this cell

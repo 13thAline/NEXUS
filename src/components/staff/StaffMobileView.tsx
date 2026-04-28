@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { io, Socket } from 'socket.io-client'
+import { clientDb, clientAuth } from '@/lib/firebase-client'
+import { doc, collection, onSnapshot } from 'firebase/firestore'
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
 import { TaskCard } from './TaskCard'
 import { Zap, ShieldAlert, Wifi, WifiOff, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,40 +21,83 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
   const [incidentStatus, setIncidentStatus] = useState<'IDLE' | 'ANALYZING' | 'ACTIVE'>(initialTask ? 'ACTIVE' : 'IDLE')
 
   useEffect(() => {
-    const socket: Socket = io({ transports: ['websocket', 'polling'] })
+    let unsubIncident: (() => void) | undefined
+    let unsubTask: (() => void) | undefined
 
-    socket.on('connect', () => {
-      setConnected(true)
-      socket.emit('join:staff', staffId)
-    })
+    // Listen to task assignment for this staff via Firestore
+    const fetchAndListen = async () => {
+      try {
+        // Find active incident
+        const res = await fetch('/api/incident/active')
+        const data = await res.json()
+        if (!data.active || !data.incident?.id) {
+          setConnected(true)
+          return
+        }
 
-    socket.on('disconnect', () => setConnected(false))
+        const incidentId = data.incident.id
 
-    socket.on('incident:created', () => {
-      if (!task) setIncidentStatus('ANALYZING')
-    })
+        // Listen to incident status
+        unsubIncident = onSnapshot(
+          doc(clientDb, 'incidents', incidentId),
+          (snap) => {
+            if (!snap.exists()) return
+            setConnected(true)
+            const d = snap.data()
 
-    socket.on('task:new', ({ task: newTask }) => {
-      setTask(newTask)
-      setIncidentStatus('ACTIVE')
-      setNewArrival(true)
-      setTimeout(() => setNewArrival(false), 5000)
-    })
+            if (d.status === 'TRIAGING' || d.status === 'BUILDING_GRAPH' || d.status === 'COMPUTING_PRIORITIES' || d.status === 'GENERATING_STRATEGY') {
+              if (!task) setIncidentStatus('ANALYZING')
+            } else if (d.status === 'RESOLVED') {
+              setTask(null)
+              setIncidentStatus('IDLE')
+            }
+          },
+          () => setConnected(false)
+        )
 
-    socket.on('task:updated', ({ taskId, status }) => {
-      if (task?.id === taskId) {
-        setTask((prev: any) => (prev ? { ...prev, status } : null))
+        // Listen to this staff's task assignment
+        unsubTask = onSnapshot(
+          doc(clientDb, 'incidents', incidentId, 'tasks', staffId),
+          (snap) => {
+            if (!snap.exists()) return
+            const taskData = snap.data()
+
+            if (taskData && !task) {
+              // New task arrived
+              setTask({ ...taskData, id: snap.id })
+              setIncidentStatus('ACTIVE')
+              setNewArrival(true)
+              setTimeout(() => setNewArrival(false), 5000)
+            } else if (taskData) {
+              // Task status updated
+              setTask((prev: any) => prev ? { ...prev, status: taskData.status } : null)
+            }
+          }
+        )
+      } catch (err) {
+        console.error('Firestore setup error:', err)
+        setConnected(false)
+      }
+    }
+
+    const unsubAuth = onAuthStateChanged(clientAuth, async (user) => {
+      if (user) {
+        fetchAndListen()
+      } else {
+        try {
+          await signInAnonymously(clientAuth)
+        } catch (e) {
+          console.error('Anonymous auth failed:', e)
+          fetchAndListen()
+        }
       }
     })
 
-    socket.on('incident:updated', ({ status }) => {
-      if (status === 'RESOLVED') {
-        setTask(null)
-        setIncidentStatus('IDLE')
-      }
-    })
-
-    return () => { socket.disconnect() }
+    return () => {
+      unsubAuth()
+      if (unsubIncident) unsubIncident()
+      if (unsubTask) unsubTask()
+    }
   }, [staffId, task?.id])
 
   return (
@@ -79,7 +124,7 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]" />
 
         <AnimatePresence mode="wait">
-          {task && task.status !== 'DONE' ? (
+          {task && task.status !== 'COMPLETE' ? (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(10px)' }}
@@ -91,7 +136,7 @@ export function StaffMobileView({ staffId, initialTask }: StaffMobileViewProps) 
               <div className="absolute -inset-4 bg-blue-500/5 blur-3xl rounded-full opacity-50" />
               <TaskCard task={task} />
             </motion.div>
-          ) : task && task.status === 'DONE' ? (
+          ) : task && task.status === 'COMPLETE' ? (
             <motion.div
               key="done"
               initial={{ opacity: 0, scale: 0.9 }}

@@ -23,7 +23,7 @@ export function AckButton({ taskId, currentStatus, onStatusChange }: AckButtonPr
       })
       if (res.ok) {
         console.log(`[Staff] Task ${action} successful for ID: ${taskId}`)
-        onStatusChange(action === 'ACKNOWLEDGE' ? 'ACKNOWLEDGED' : 'DONE')
+        onStatusChange(action === 'ACKNOWLEDGE' ? 'ACKNOWLEDGED' : 'COMPLETE')
       } else {
         const errData = await res.json().catch(() => ({ error: 'Server error' }))
         console.error(`[Staff] Task ${action} failed:`, errData.error)
@@ -37,7 +37,7 @@ export function AckButton({ taskId, currentStatus, onStatusChange }: AckButtonPr
     }
   }
 
-  if (currentStatus === 'DONE') {
+  if (currentStatus === 'COMPLETE') {
     return (
       <div className="w-full py-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-center">
         <span className="text-green-400 font-semibold text-lg">✓ Task Completed</span>
@@ -45,7 +45,7 @@ export function AckButton({ taskId, currentStatus, onStatusChange }: AckButtonPr
     )
   }
 
-  if (currentStatus === 'ACKNOWLEDGED' || currentStatus === 'IN_PROGRESS') {
+  if (currentStatus === 'ACKNOWLEDGED') {
     return (
       <button
         onClick={() => handleAction('COMPLETE')}

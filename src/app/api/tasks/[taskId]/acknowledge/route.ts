@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { taskAcknowledgeSchema } from '@/lib/validators'
-import { emitToAll } from '@/lib/socket'
+import { updateFirestoreIncident, writeFirestoreTask } from '@/lib/firebase-admin'
 import { checkAutoContain } from '@/lib/incident-state'
 
 export async function POST(
@@ -15,62 +15,48 @@ export async function POST(
     const { taskId } = await params
     const body = await req.json()
 
-    // Validate action
     const parsed = taskAcknowledgeSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid action. Must be "ACKNOWLEDGE" or "COMPLETE"', details: parsed.error.flatten() },
+        { error: 'Invalid action', details: parsed.error.flatten() },
         { status: 400 }
       )
     }
 
     const { action } = parsed.data
 
-    // Check task exists
     const existingTask = await prisma.task.findUnique({ where: { id: taskId } })
     if (!existingTask) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // Determine update data based on action
     const updateData =
       action === 'ACKNOWLEDGE'
         ? { status: 'ACKNOWLEDGED', acknowledgedAt: new Date() }
-        : { status: 'DONE', completedAt: new Date() }
+        : { status: 'COMPLETE', completedAt: new Date() }
 
-    // Update task
     const task = await prisma.task.update({
       where: { id: taskId },
       data: updateData,
     })
 
-    console.log(`[API] Task ${taskId} updated to ${task.status}`)
+    // Update Firestore for real-time dashboard
+    await writeFirestoreTask(task.incidentId, task.staffId, {
+      status: task.status,
+      ...(action === 'ACKNOWLEDGE' ? { acknowledgedAt: new Date().toISOString() } : { completedAt: new Date().toISOString() }),
+    })
 
     // Log the update
     const actionText = action === 'ACKNOWLEDGE' ? 'acknowledged' : 'completed'
     await prisma.incidentLog.create({
       data: {
         incidentId: task.incidentId,
-        message: `✅ ${task.staffName} (${task.staffRole}) ${actionText} task: "${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}"`,
-        source: 'STAFF',
+        event: `✅ ${task.staffName} (${task.staffRole}) ${actionText} task: "${task.description.substring(0, 80)}"`,
+        data: JSON.stringify({ taskId, action, staffId: task.staffId }),
       },
     })
 
-    // Broadcast to command dashboard
-    try {
-      emitToAll('task:updated', {
-        taskId: task.id,
-        incidentId: task.incidentId,
-        status: task.status,
-        staffId: task.staffId,
-        staffName: task.staffName,
-        action,
-      })
-    } catch (e) {
-      console.warn('[API] Socket broadcast failed, but DB was updated')
-    }
-
-    // Check if all tasks are done and auto-contain the incident
+    // Check if all tasks done → auto-contain
     if (action === 'COMPLETE') {
       await checkAutoContain(task.incidentId)
     }

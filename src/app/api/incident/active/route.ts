@@ -3,13 +3,18 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
+    // Find any incident that's currently in the pipeline or active
     const incident = await prisma.incident.findFirst({
-      where: { status: { in: ['ACTIVE', 'CONTAINED'] } },
-      include: { 
-        tasks: true,
-        events: { orderBy: { createdAt: 'asc' } }
+      where: {
+        status: {
+          in: ['TRIAGING', 'BUILDING_GRAPH', 'COMPUTING_PRIORITIES', 'GENERATING_STRATEGY', 'ACTIVE', 'CONTAINED'],
+        },
       },
-      orderBy: { triggeredAt: 'desc' }
+      include: {
+        tasks: { orderBy: { priority: 'asc' } },
+        logs: { orderBy: { timestamp: 'asc' } },
+      },
+      orderBy: { timestamp: 'desc' },
     })
 
     if (!incident) return NextResponse.json({ active: false })
@@ -18,7 +23,7 @@ export async function GET() {
       active: true,
       incident,
       tasks: incident.tasks,
-      logs: incident.events
+      logs: incident.logs,
     })
   } catch (error) {
     console.error('[API] Active incident fetch error:', error)
