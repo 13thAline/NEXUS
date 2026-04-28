@@ -48,6 +48,12 @@ export default function LandingPage() {
         
         <div className="flex flex-col sm:flex-row items-center gap-4 animate-nexus-slide-in" style={{ animationDelay: '200ms' }}>
           <Link 
+            href="/simulate"
+            className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm tracking-wide transition-all hover:scale-105 shadow-[0_0_30px_rgba(220,38,38,0.3)]"
+          >
+            Run Simulation <ChevronRight className="w-4 h-4" />
+          </Link>
+          <Link 
             href="/dashboard"
             className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm tracking-wide transition-all hover:scale-105 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
           >
