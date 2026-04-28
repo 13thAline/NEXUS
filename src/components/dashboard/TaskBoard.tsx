@@ -155,6 +155,24 @@ function TaskCard({ task }: { task: Task }) {
           P{task.priority}
         </div>
       </div>
+
+      {/* Admin Override */}
+      {task.status !== 'COMPLETE' && (
+        <button
+          onClick={async () => {
+            if (confirm('Complete this task on behalf of staff?')) {
+              await fetch(`/api/tasks/${task.id}/acknowledge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'COMPLETE' })
+              });
+            }
+          }}
+          className="mt-3 w-full py-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white text-[9px] font-bold uppercase tracking-widest transition-colors"
+        >
+          Override: Mark Complete
+        </button>
+      )}
     </Card>
   )
 }

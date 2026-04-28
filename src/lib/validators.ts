@@ -8,13 +8,13 @@ import { z } from 'zod'
 export const TriageResultSchema = z.object({
   incidentType: z.string(),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  affectedFloors: z.array(z.number().int()),
+  affectedFloors: z.array(z.coerce.number().int()),
   affectedZones: z.array(z.string()),
   adjacentZones: z.array(z.string()),
-  adjacentFloors: z.array(z.number().int()),
+  adjacentFloors: z.array(z.coerce.number().int()),
   evacuationRequired: z.boolean(),
   lifeRisk: z.boolean(),
-  confidence: z.number().min(0).max(1),
+  confidence: z.coerce.number().min(0).max(1),
   summary: z.string(),
 })
 
@@ -27,8 +27,8 @@ export const TaskPlanTaskSchema = z.object({
   assignedStaffId: z.string(),
   staffName: z.string(),
   description: z.string().min(5),
-  priority: z.number().int().min(1),
-  floor: z.number().int(),
+  priority: z.coerce.number().int().min(1),
+  floor: z.coerce.number().int(),
   zone: z.string(),
   llmReasoning: z.string().optional(),
 })

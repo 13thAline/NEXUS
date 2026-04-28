@@ -42,47 +42,26 @@ export default function LandingPage() {
           System Online & Monitoring
         </div>
         
-        <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 bg-gradient-to-br from-white via-white/90 to-white/30 bg-clip-text text-transparent max-w-4xl animate-nexus-slide-in" style={{ animationDelay: '100ms' }}>
-          Intelligent Crisis Coordination for Modern Hospitality.
+        <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-12 bg-gradient-to-br from-white via-white/90 to-white/30 bg-clip-text text-transparent max-w-4xl animate-nexus-slide-in" style={{ animationDelay: '100ms' }}>
+          NEXUS System Gateway
         </h2>
         
-        <p className="text-lg md:text-xl text-white/50 max-w-2xl mb-12 font-medium leading-relaxed animate-nexus-slide-in" style={{ animationDelay: '200ms' }}>
-          NEXUS is an autonomous safety engine that instantly detects anomalies, orchestrates response teams, and secures your property using deterministic AI.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-4 animate-nexus-slide-in" style={{ animationDelay: '300ms' }}>
+        <div className="flex flex-col sm:flex-row items-center gap-4 animate-nexus-slide-in" style={{ animationDelay: '200ms' }}>
           <Link 
-            href="/simulate"
+            href="/dashboard"
             className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm tracking-wide transition-all hover:scale-105 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
           >
-            Run Simulation <ChevronRight className="w-4 h-4" />
+            Admin Dashboard <ChevronRight className="w-4 h-4" />
           </Link>
           <Link 
             href="/staff"
             className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm tracking-wide transition-all"
           >
-            Access Staff Portal
+            Staff Portal
           </Link>
         </div>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mt-32 animate-nexus-slide-in" style={{ animationDelay: '400ms' }}>
-          <FeatureCard 
-            icon={<Bell className="w-6 h-6 text-red-400" />}
-            title="Real-time Detection"
-            description="Ingests raw sensor data and IoT triggers instantly, bypassing human delays in critical moments."
-          />
-          <FeatureCard 
-            icon={<Map className="w-6 h-6 text-purple-400" />}
-            title="Spatial Awareness"
-            description="Maps incidents to specific zones and dynamically tracks safe vs. compromised sectors."
-          />
-          <FeatureCard 
-            icon={<Users className="w-6 h-6 text-green-400" />}
-            title="Automated Dispatch"
-            description="Generates precision task lists and routes them directly to the appropriate staff mobile devices."
-          />
-        </div>
+
       </main>
 
       {/* Footer */}
@@ -93,14 +72,4 @@ export default function LandingPage() {
   )
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-  return (
-    <div className="nexus-glass p-8 rounded-3xl border border-white/5 text-left hover:bg-white/[0.03] transition-colors">
-      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6">
-        {icon}
-      </div>
-      <h3 className="text-lg font-bold mb-3">{title}</h3>
-      <p className="text-sm text-white/50 leading-relaxed font-medium">{description}</p>
-    </div>
-  )
-}
+

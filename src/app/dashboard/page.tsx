@@ -301,7 +301,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-4 text-[10px] font-mono text-white/20">
-          <span>AI CORE: Gemini 2.5 Pro</span>
+          <span>AI CORE: Gemini 3.1 Pro Preview</span>
           <div className="w-[1px] h-3 bg-white/10"></div>
           <span>NODE: Nexus-Local-01</span>
         </div>

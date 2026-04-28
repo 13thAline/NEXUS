@@ -34,6 +34,13 @@ async function updateStatus(incidentId: string, status: string) {
   console.log(`[NEXUS] ${incidentId} → ${status}`)
 }
 
+// ─── Utility: Extract JSON from Markdown ──────────────────
+function extractJSON(text: string): any {
+  const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim()
+  const match = clean.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
+  return JSON.parse(match ? match[0] : clean)
+}
+
 // ─── Main Pipeline ───────────────────────────────────────
 
 export interface RawPayload {
@@ -212,13 +219,13 @@ Respond with JSON containing:
     })
 
     const text = result.response.text()
-    const parsed = JSON.parse(text)
+    const parsed = extractJSON(text)
     return TriageResultSchema.parse(parsed)
   } catch (flashError) {
     console.warn('[NEXUS] Gemini Flash failed, falling back to gemma:7b:', flashError)
     const fallbackPrompt = prompt + `\n\nEnsure you return ONLY valid JSON matching the exact schema requested.`
     const raw = await gemmaFallback(fallbackPrompt)
-    const parsed = JSON.parse(raw)
+    const parsed = extractJSON(raw)
     return TriageResultSchema.parse(parsed)
   }
 }
@@ -317,7 +324,7 @@ Respond with JSON:
     clearTimeout(timeout)
 
     const text = result.response.text()
-    const parsed = JSON.parse(text)
+    const parsed = extractJSON(text)
     const plan = TaskPlanResponseSchema.parse(parsed)
 
     return { plan, generatedBy: 'gemini-pro' }
@@ -337,7 +344,7 @@ Assign one task per staff member. Respond with JSON:
 {"reasoning":"...","taskPlan":[{"taskId":"task_001","assignedStaffId":"staff_001","staffName":"Name","description":"Action","priority":1,"floor":1,"zone":"Zone"}],"coverageGaps":[],"warnings":[]}`
 
     const raw = await gemmaFallback(fallbackPrompt)
-    const parsed = JSON.parse(raw)
+    const parsed = extractJSON(raw)
     const plan = TaskPlanResponseSchema.parse(parsed)
 
     return { plan, generatedBy: 'gemma-fallback' }

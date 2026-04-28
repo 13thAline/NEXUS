@@ -5,63 +5,32 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-// ─── Gemini 2.5 Flash — Stage 1 Triage (~1s) ────────────
+// ─── Gemini 3 Flash — Stage 1 Triage (~1s) ────────────
 export const flashModel = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3-flash-preview',
 })
 
-// ─── Gemini 2.5 Pro — Stage 4 Strategy (30-60s) ─────────
+// ─── Gemini 3.1 Pro — Stage 4 Strategy (30-60s) ─────────
 export const proModel = genAI.getGenerativeModel({
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro-preview',
 })
 
-// ─── Vertex AI text-embedding-004 — Stage 3 ─────────────
-const GCP_PROJECT = process.env.GCP_PROJECT_ID!
-const GCP_LOCATION = process.env.GCP_LOCATION || 'us-central1'
+// ─── Embeddings gemini-embedding-2 — Stage 3 ─────────────
+const embeddingModel = genAI.getGenerativeModel({
+  model: 'gemini-embedding-2',
+})
 
 /**
- * Embed an array of texts using Vertex AI text-embedding-004.
- * Batches all texts in a single API call.
+ * Embed an array of texts using Gemini API gemini-embedding-2.
  */
 export async function embedTexts(texts: string[]): Promise<number[][]> {
-  const url = `https://${GCP_LOCATION}-aiplatform.googleapis.com/v1/projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/publishers/google/models/text-embedding-004:predict`
-
-  // Get access token via ADC (Application Default Credentials)
-  const tokenRes = await fetch(
-    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
-    { headers: { 'Metadata-Flavor': 'Google' } }
-  ).catch(() => null)
-
-  let accessToken: string
-
-  if (tokenRes?.ok) {
-    // Running on GCP (Cloud Run, etc.)
-    const tokenData = await tokenRes.json()
-    accessToken = tokenData.access_token
-  } else {
-    // Running locally — use gcloud CLI token
-    const { execSync } = await import('child_process')
-    accessToken = execSync('gcloud auth print-access-token', { encoding: 'utf-8' }).trim()
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      instances: texts.map(text => ({ content: text })),
-    }),
-  })
-
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`Vertex Embeddings failed: ${response.status} — ${err}`)
-  }
-
-  const data = await response.json()
-  return data.predictions.map((p: any) => p.embeddings.values)
+  const embeddings = await Promise.all(
+    texts.map(async (text) => {
+      const result = await embeddingModel.embedContent(text)
+      return result.embedding.values
+    })
+  )
+  return embeddings
 }
 
 // ─── Ollama gemma:7b Fallback ────────────────────────────
