@@ -36,9 +36,46 @@ async function updateStatus(incidentId: string, status: string) {
 
 // ─── Utility: Extract JSON from Markdown ──────────────────
 function extractJSON(text: string): any {
-  const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim()
-  const match = clean.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-  return JSON.parse(match ? match[0] : clean)
+  // 1. Try to match markdown json block first
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  if (match) {
+    try {
+      return JSON.parse(match[1].trim())
+    } catch (e) {
+      // Ignore and try other methods
+    }
+  }
+
+  // 2. Attempt to isolate the JSON object or array
+  const firstBrace = text.indexOf('{')
+  const lastBrace = text.lastIndexOf('}')
+  const firstBracket = text.indexOf('[')
+  const lastBracket = text.lastIndexOf(']')
+
+  const start = Math.min(
+    firstBrace === -1 ? Infinity : firstBrace,
+    firstBracket === -1 ? Infinity : firstBracket
+  )
+  const end = Math.max(lastBrace, lastBracket)
+
+  if (start !== Infinity && end !== -1 && start <= end) {
+    try {
+      return JSON.parse(text.substring(start, end + 1))
+    } catch (e) {
+      // Fall through
+    }
+  }
+
+  // 3. Fallback: strip markdown and any leading text before the first bracket
+  let clean = text.replace(/```json/gi, '').replace(/```/g, '').trim()
+  const cleanStart = Math.min(
+    clean.indexOf('{') === -1 ? Infinity : clean.indexOf('{'),
+    clean.indexOf('[') === -1 ? Infinity : clean.indexOf('[')
+  )
+  if (cleanStart !== Infinity) {
+    clean = clean.substring(cleanStart)
+  }
+  return JSON.parse(clean)
 }
 
 // ─── Main Pipeline ───────────────────────────────────────
@@ -191,14 +228,16 @@ Timestamp: ${payload.timestamp || new Date().toISOString()}
 Respond with JSON containing:
 - incidentType: one of FIRE, GAS_LEAK, MEDICAL, ACTIVE_SHOOTER, STRUCTURAL, EVACUATION, SECURITY
 - severity: LOW, MEDIUM, HIGH, or CRITICAL
-- affectedFloors: array of floor numbers directly affected
+- affectedFloors: array of floor integers directly affected (e.g., [1, 2]). Numbers only.
 - affectedZones: array of zone descriptions
 - adjacentZones: array of adjacent zone descriptions that may be affected
-- adjacentFloors: array of floor numbers adjacent to affected area
+- adjacentFloors: array of floor integers adjacent to affected area (e.g., [1, 2]). Numbers only.
 - evacuationRequired: boolean
 - lifeRisk: boolean — is there immediate danger to life
 - confidence: 0-1 float — how confident you are in this classification
-- summary: one-sentence summary of the incident`
+- summary: one-sentence summary of the incident
+
+CRITICAL: You are an API endpoint. You must return ONLY raw valid JSON. No markdown formatting, no backticks, no conversational text before or after the JSON.`
 
   // Build content parts (text + optional image)
   const parts: any[] = [{ text: prompt }]
@@ -214,7 +253,7 @@ Respond with JSON containing:
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.1,
-        maxOutputTokens: 256,
+        maxOutputTokens: 1024,
       },
     })
 
@@ -305,7 +344,9 @@ Respond with JSON:
   ],
   "coverageGaps": ["Tasks with no available staff"],
   "warnings": ["Specific risks or unresolved issues"]
-}`
+}
+
+CRITICAL: You are an API endpoint. You must return ONLY raw valid JSON. No markdown formatting, no backticks, no conversational text before or after the JSON.`
 
   // Try Gemini 2.5 Pro with 55-second timeout
   try {
@@ -317,7 +358,7 @@ Respond with JSON:
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.3,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096,
       },
     })
 
